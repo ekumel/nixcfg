@@ -75,11 +75,13 @@
       };
 
       # lualine：状态栏（全局一行，避开 stack panel 的伪状态栏）
+      # theme = "dms"：配色由 lua/lualine/themes/dms.lua 运行时读取 DMS（matugen）
+      # 调色板生成（见 ../theme.nix）；DMS 未生成时该主题模块自行回退 tokyonight。
       lualine = {
         enable = true;
         settings = {
           options = {
-            theme = "tokyonight";
+            theme = "dms";
             globalstatus = true;
             # agentic / dashboard 等特殊 ft 不渲染 lualine
             disabled_filetypes.statusline = [
