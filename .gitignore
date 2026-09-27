@@ -1,0 +1,12 @@
+# Agent Manager 状态（含 worktrees 与运行期数据）
+/.kilo/
+
+# 旧配置备份（不参与求值）
+/backup/
+
+# 构建产物与 direnv
+/result
+/result-*
+/.direnv/
+
+# 注意：secrets/*.age 是加密密文，必须提交，不要忽略 secrets/。

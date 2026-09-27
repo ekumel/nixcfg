@@ -1,0 +1,179 @@
+# nvfetcher 配置：本仓库所有第三方上游源的统一跟踪清单。
+#
+# 工作流：
+#   1. 编辑本文件，新增 / 修改 / 删除 [package] 表；
+#   2. 跑 `nvfetcher -c ./nvfetcher.toml` 查询上游版本号，若与
+#      _sources/generated.json 不一致则下载并重算 hash，结果写入
+#      _sources/generated.{nix,json}；
+#   3. 顶层 sources.nix 把 _sources/generated.nix 暴露为 attrset；
+#   4. 各 *.nix 包定义通过 `pkgs.callPackage ../../fetch/sources.nix { }`
+#      拿到 sources，再用 `callPackage ./xxx.nix { inherit sources; }`
+#      注入具体包定义；
+#   5. CI / 本地 hook 可在每次升级后跑 `nixos-rebuild switch` 验证。
+#
+# ----------------------------------------------------------------------
+# 本文件按跟踪策略分两组：
+#
+#  A. release 跟踪（src.github / src.webpage 等拿到上游最新 release
+#     版本号）：kelivo / genoffice / zedg / wechat。fetch.url 模板里
+#     的 $ver 是 nvchecker 返回的版本字符串。
+#
+#  B. git 分支跟踪（src.git + src.branch 取 main HEAD commit SHA）：
+#     whisker-shell / whisker-cli / outfit-fonts。这三个上游没有
+#     GitHub release，src.github 会查 releases/latest → 404。
+#     fetch.github 把 commit SHA 替换到 archive/<rev>.tar.gz。
+#
+# 关键约束：fetch.url 模板里的 $ver **带 v 前缀**（如 v1.2.6），
+# 不支持 bash 切片或子串提取（写 ${ver:1} 会被字面保留），所以无法
+# 在模板里把同一份版本号同时用作"带前缀"和"不带前缀"两种格式。
+# 常见做法：src.github + src.from_pattern "v(.+)" / src.to_pattern
+# "\1" 把 tag 剥前缀成裸版本号，fetch.url 里再手动拼回 v。
+# ----------------------------------------------------------------------
+
+# === A 组：release 跟踪 =============================================
+
+# kelivo：Flutter LLM 客户端。GitHub release 同时提供 .AppImage /
+# .deb / .rpm / .tar.gz（已解压版本）。本配置用 .tar.gz（已解压目录树），
+# 可以直接进 buildFHSEnv 的 runScript（无需 AppImage 解包）。
+#
+# 特殊情况：上游 release asset 文件名带 Flutter build number，例如
+# `Kelivo_linux_1.2.6+73.tar.gz` 里的 `+73`。这个 build number 不在
+# GitHub tag（v1.2.6）里，nvfetcher 的 fetch.url 模板只能整体替换
+# $ver，无法从外部注入额外的 build 号——并且 + 在 GitHub 路径段里
+# 不能出现（会被字面解析），文件名段需要 URL-encode 成 %2B。
+#
+# 处理方式：URL 完全硬编码（不用 $ver），src.manual 仅用作 nvfetcher
+# 内部"这是当前版本"的记录；hash 仍由 nvfetcher 跑 nix-prefetch-url
+# 算出并写入 generated.nix。手动同步三处：src.manual / URL 路径段版本
+# 号 / URL 文件名段版本号 + build 号。
+#
+# 升级流程：
+#   1. 打开 https://github.com/Chevey339/kelivo/releases 看最新 tag 与
+#      对应的 build number（asset 文件名里的 `+N`）；
+#   2. 改下方 manual 字段、URL 路径段、URL 文件名段三处；
+#   3. `nvfetcher -c ./nvfetcher.toml` 重算 sha256；
+#   4. `nixos-rebuild switch` 验证编译。
+#
+# 当前记录：1.2.6 + build 73。
+[kelivo]
+src.manual = "v1.2.6+73"
+fetch.url = "https://github.com/Chevey339/kelivo/releases/download/v1.2.6/Kelivo_linux_1.2.6%2B73.tar.gz"
+
+# genoffice：Genspark AI Office 套件。上游仅提供 .AppImage，
+# 走 nixpkgs 的 appimageTools.wrapType2 解包即可。
+# tag v0.10.639 → asset 名 GenOffice-0.10.639.AppImage（无前缀）。
+[genoffice]
+src.github = "genspark-ai/genoffice"
+src.from_pattern = "v(.+)"
+src.to_pattern = "\\1"
+fetch.url = "https://github.com/genspark-ai/genoffice/releases/download/v$ver/GenOffice-$ver.AppImage"
+
+# zedg：WenYin-Community 维护的 Zed 汉化版。GitHub release 同时提供
+# x86_64 / aarch64 的预编译 tarball（含 usr/ 树），不需要 build。
+#
+# nvfetcher 的 fetch.url 不支持 per-arch 拼接（$ver 只能整体替换）。
+# 这里用 x86_64 的 URL；aarch64 的 hash 在 zedg.nix 里通过 callPackage
+# 二次处理（pkgs/zedg.nix）。
+[zedg]
+src.github = "WenYin-Community/zed-globalization"
+# tag v1.20.2 → asset 名 zedg-zh-cn-linux-x86_64-v1.20.2.tar.gz。
+# 注意这里的 asset 名仍带 v 前缀——所以不剥前缀，让 $ver = v1.20.2。
+fetch.url = "https://github.com/WenYin-Community/zed-globalization/releases/download/$ver/zedg-zh-cn-linux-x86_64-$ver.tar.gz"
+
+# wechat：QQ 官方 Linux 客户端。上游仅在 dldir1v6.qq.com 提供 AppImage，
+# 文件名不含版本号、且只保留最新版，所以 fetch.url 里没有 $ver。
+# 版本号从官方下载页 https://linux.weixin.qq.com/ 的
+# `main-section__bd-version` 元素抓取（src.webpage + src.regex）。
+# 有新版本时 nvfetcher 会重新下载 AppImage 并重算 sha256。
+# 注意：aarch64 的 src 在 wechat.nix 里手算（一个包只能配一个 fetch.url）。
+[wechat]
+src.webpage = "https://linux.weixin.qq.com/"
+src.regex = 'main-section__bd-version[^>]*>([0-9.]+)<'
+fetch.url = "https://dldir1v6.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage"
+
+# fluxdown：zerx-lab 维护的多协议下载管理器（HTTP / FTP / BitTorrent /
+# eD2K / HLS / DASH，Rust + Flutter）。上游只在 GitHub release 发
+# x86_64 AppImage，nixpkgs 不收录，走 appimageTools.wrapType2 解包
+# （同 genoffice.nix / motrix.nix）。
+#
+# tag `vX.Y.Z` → asset 名 `FluxDown-X.Y.Z-linux-x64.AppImage`
+# （asset 名不带 v 前缀，与 wechat / kelivo 同款：strip `v` 后 $ver 拼回）。
+#
+# 仅跟踪 linux-x64 AppImage（与本机一致）；aarch64 的 hash 在 fluxdown.nix
+# 里通过 callPackage 二次处理（同 zedg.nix / wechat.nix / motrix.nix
+# 的多架构方案）。
+[fluxdown]
+src.manual = "0.4.8"
+fetch.url = "https://github.com/zerx-lab/FluxDown/releases/download/v$ver/FluxDown-$ver-linux-x64.AppImage"
+
+
+# === B 组：git 分支跟踪（main HEAD）================================
+#
+# Whisker 桌面 shell 的三个上游源。它们都没有 GitHub release，所以走
+# src.git + src.branch 直接拿 main 分支最新 commit，version 字段会是
+# commit SHA（带前缀不影响主分支使用，只是 meta 里看着像 SHA）。fetch.github
+# 把 commit SHA 替换为 archive/<rev>.tar.gz 形式的 URL。
+
+[whisker-shell]
+src.git = "https://github.com/ekumel/whisker"
+src.branch = "main"
+fetch.github = "ekumel/whisker"
+
+[whisker-cli]
+src.git = "https://github.com/corecathx/whisker-cli"
+src.branch = "main"
+fetch.github = "corecathx/whisker-cli"
+
+[outfit-fonts]
+src.git = "https://github.com/Outfitio/Outfit-Fonts"
+src.branch = "main"
+fetch.github = "Outfitio/Outfit-Fonts"
+
+# ----------------------------------------------------------------------
+# C 组：commit-pin 跟踪（src.manual + fetch.github / fetch.url）。
+#
+# 这两个 GTK 主题（darkly-gtk / ozone-icons）历史上钉到具体 commit 而非
+# main HEAD，目的是行为稳定。这里保留 pin，但把 hash 校验交给 nvfetcher：
+#   - src.manual = "<sha>"：把 commit SHA 作为版本号写死；
+#   - fetch.github = "owner/repo"：nvfetcher 仍会调 nix-prefetch-github
+#     算出对应 sha256，写入 _sources/generated.nix；
+#   - 升级流程：手动同步 src.manual / fetch.github 三处字段；
+#     _sources/generated.nix 的 sha256 由 nvfetcher 重算。
+# ----------------------------------------------------------------------
+
+[darkly-gtk]
+src.manual = "36d24ba0fed2b5274cfe28100a3104465fb69516"
+fetch.github = "wrymt/darkly-gtk"
+
+# Bibata 现代光标（白底蓝芯）。上游 release 只发 XCursor tarball
+# （不是 GitHub 自动打包的源码 tarball），所以必须用 fetch.url + 手动
+# 拼 release asset 名。当前钉 v2.0.7：
+#   https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Ice.tar.xz
+# 升级流程：改 src.manual + 确认 asset 名（路径段前缀 v、文件名段无 v）。
+[bibata-modern-ice]
+src.manual = "2.0.7"
+fetch.url = "https://github.com/ful1e5/Bibata_Cursor/releases/download/v$ver/Bibata-Modern-Ice.tar.xz"
+
+# ----------------------------------------------------------------------
+# D 组：非 GitHub 上游（Forgejo / 自建站点）。
+# ----------------------------------------------------------------------
+
+# dwproton：Dawn Winery 维护的 Proton 分支（基于 Proton-CachyOS），
+# 用作 Steam 的第三方兼容工具（见 modules/system/dwproton.nix 与
+# modules/system/gaming.nix）。上游没有 GitHub release，只在自建
+# Forgejo（dawn.wine）发 x86_64 预编译 tarball，所以用 src.manual
+# 记录完整 tag，再用 fetch.url 拼资产名。
+#
+# tag 形如 `dwproton-11.0-13`（带仓库名前缀），资产文件名是
+# `dwproton-11.0-13-x86_64.tar.xz`。因此 $ver 取完整 tag，
+# 文件段再拼 `-x86_64.tar.xz`（$ver 不能做子串截断，见文件头说明）。
+#
+# 升级流程：
+#   1. 打开 https://dawn.wine/dawn-winery/dwproton/releases 看最新 tag；
+#   2. 改下方 src.manual；
+#   3. `cd fetch && nvfetcher -c ./nvfetcher.toml -f dwproton` 重算 sha256；
+#   4. `nixos-rebuild switch` 验证（会重新下载 ~340MB 的 tarball 并解包）。
+[dwproton]
+src.manual = "dwproton-11.0-13"
+fetch.url = "https://dawn.wine/dawn-winery/dwproton/releases/download/$ver/$ver-x86_64.tar.xz"
+
