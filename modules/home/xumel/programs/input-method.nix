@@ -1,6 +1,6 @@
 # fcitx5-rime 的用户级配置（雾凇拼音）。
 #
-# 系统层的 fcitx5 本体与 addons 见 modules/nixos/system/input-method.nix；
+# 系统层的 fcitx5 本体与 addons 见 modules/nixos/input-method.nix；
 # 这里只把词库 / 方案 / 自定义补丁放进 ~/.local/share/fcitx5/rime/。
 { pkgs, ... }:
 

@@ -2,10 +2,10 @@
 # 用作 Steam 的第三方 Proton 兼容工具，同时被 Bottles 当自定义 Proton runner。
 #
 # 放在 packages/（blueprint 约定的包目录，暴露为 perSystem.self.dwproton）：
-#   system 侧（modules/nixos/system/gaming.nix，Steam）与用户侧
+#   system 侧（modules/nixos/gaming.nix，Steam）与用户侧
 #   （modules/home/xumel/packages/gaming.nix，Bottles）都要用它。
 #   若收进 modules/nixos/，用户空间会反向依赖系统空间，破坏仓库分层
-#   （同 fetch/sources.nix 头部所述原则）。
+#   （同 lib/nvfetcher-sources.nix 头部所述原则）。
 #
 # 上游通过自建 Forgejo（dawn.wine）发 x86_64 预编译包：
 #   dwproton-<ver>-x86_64.tar.xz
@@ -19,8 +19,8 @@
 # 声明一个 `steamcompattool` 输出，由 lib.makeSearchPathOutput 拼进该环境变量。
 # Bottles 则是把这个输出软链进 ~/.local/share/bottles/runners/（见用户侧 gaming.nix）。
 #
-# 版本与 src 由 fetch/_sources/generated.nix 提供（nvfetcher 跟踪 dawn.wine
-# release，见 fetch/nvfetcher.toml 的 [dwproton]）。
+# 版本与 src 由 _sources/generated.nix 提供（nvfetcher 跟踪 dawn.wine
+# release，见 nvfetcher.toml 的 [dwproton]）。
 {
   pkgs,
   flake,

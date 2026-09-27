@@ -18,7 +18,7 @@
     rustfmt
     clippy
 
-    # 仓库维护：nvfetcher 跟踪 fetch/ 的第三方源，nixfmt 格式化本仓库。
+    # 仓库维护：nvfetcher 跟踪根目录 nvfetcher.toml 的第三方源，nixfmt 格式化本仓库。
     nvfetcher
     nixfmt
 

@@ -1,7 +1,7 @@
 # xumel 的用户级 shell：fish + starship。
 #
 # fish 走 home-manager 的 programs.fish 生成 ~/.config/fish/config.fish；
-# 系统层的 programs.fish.enable（modules/nixos/system/shell.nix）只负责 /etc/shells
+# 系统层的 programs.fish.enable（modules/nixos/shell.nix）只负责 /etc/shells
 # 与 SHELL 绑定。
 #
 # starship 刻意不用 programs.starship：~/.config/starship.toml 由 DMS

@@ -2,7 +2,7 @@
 # X11 / XWayland 应用（dconf 只对走 GSettings 的应用生效）。
 #
 # 主题相关配置分两处：
-#   - dconf 默认值由系统层播种（modules/nixos/system/desktop/gtk.nix）；
+#   - dconf 默认值由系统层播种（modules/nixos/desktop/gtk.nix）；
 #   - 本文件（xsettingsd.conf）覆盖纯 X11 / X Toolkit 客户端。
 #
 # Net/IconThemeName 故意不写死：xsettingsd 会从 dconf 回退读取，

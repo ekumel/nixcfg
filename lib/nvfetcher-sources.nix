@@ -1,10 +1,11 @@
-# sources.nix：把 nvfetcher 生成的 _sources/generated.nix 暴露为
+# nvfetcher-sources.nix：把 nvfetcher 生成的 _sources/generated.nix 暴露为
 # 一个 attrset，供整个仓库的 *.nix 包定义统一消费。
 #
-# 为什么放顶层 fetch/ 而不是 modules/ 下：
-#   fetch/ 是仓库范围内的"基础设施"——系统模块与用户模块都要引用，
-#   放进任何一侧都会让另一侧产生反向依赖，破坏分层。
-#   顶层目录（与 modules/、hosts/、flake.nix 平级）更准确。
+# 为什么放 lib/：
+#   它是仓库范围内的"基础设施"——系统模块、用户模块与 packages/ 都要引用。
+#   blueprint 只把 lib/default.nix 暴露为 flake.lib，本文件作为其内部
+#   wrapper 与 default.nix 放在一起；生成的 _sources/ 与 nvfetcher.toml
+#   放在仓库根，与 flake.nix 平级。
 #
 # 为什么多一层 wrapper：
 #   _sources/generated.nix 是一个返回 attrset 的函数（接收 fetchgit /
@@ -12,7 +13,7 @@
 #   nvfetcher 跟踪的 src。如果每个消费者自己 callPackage 这个函数、
 #   再选自己需要的 key，会重复 import + 暴露逻辑。
 #
-#   所以这里统一调一次 `callPackage ./sources.nix { }`，得到一个已经
+#   所以这里统一调一次 `callPackage ./nvfetcher-sources.nix { }`，得到一个已经
 #   "扁平化"的 attrset：
 #     sources = {
 #       kelivo        = { pname, version, src };
@@ -36,6 +37,11 @@
   fetchFromGitHub,
   dockerTools,
 }:
-import ./_sources/generated.nix {
-  inherit fetchgit fetchurl fetchFromGitHub dockerTools;
+import ../_sources/generated.nix {
+  inherit
+    fetchgit
+    fetchurl
+    fetchFromGitHub
+    dockerTools
+    ;
 }

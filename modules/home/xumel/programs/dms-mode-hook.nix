@@ -155,5 +155,10 @@ in
     # xsettingsd：SIGHUP 让它重读配置（图标主题项在 conf 里没写死，
     # 实际从 dconf 拿值；新会话窗口立即跟随新主题，已打开的窗口需重启应用）。
     pkill -HUP -x xsettingsd 2>/dev/null || true
+
+    # helix：USR1 = 重载 config.toml / 主题（matugen 刚重写过
+    # ~/.config/helix/themes/matugen.toml，见 programs/matugen.nix）。
+    # 进程名可能是包装器后的 .hx-wrapped，与 home-manager 的 onChange 一致。
+    pkill -USR1 -u "$USER" -x '(hx|\.hx-wrapped)' 2>/dev/null || true
   '';
 }

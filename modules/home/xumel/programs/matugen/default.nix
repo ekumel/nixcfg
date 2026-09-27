@@ -13,6 +13,7 @@
 #       ~/.config/wlogout/style.css                   （wlogout 会话菜单）
 #       ~/.config/starship.toml                       （starship 提示符）
 #       ~/.config/yazi/theme.toml                     （yazi 文件管理器）
+#       ~/.config/helix/themes/matugen.toml           （helix 编辑器，由本模块模板生成）
 #       ~/.config/btop/themes/matugen.theme           （btop，需 btop.conf 选它）
 #       ~/.local/share/color-schemes/Matugen.colors   （Qt/qtengine 配色）
 #       ~/.cache/wal/colors.json                      （pywalfox）
@@ -41,6 +42,12 @@ let
       yazi = {
         input_path = "${templatesDir}/yazi-theme.toml";
         output_path = "~/.config/yazi/theme.toml";
+      };
+
+      # helix：整份主题文件（编辑器 scope → Material You token 映射）。
+      helix = {
+        input_path = "${templatesDir}/helix-theme.toml";
+        output_path = "~/.config/helix/themes/matugen.toml";
       };
     };
   };

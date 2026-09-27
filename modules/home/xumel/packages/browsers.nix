@@ -28,7 +28,7 @@ let
   # 注：Pywalfox 的 ~/.cache/wal/colors.json -> dank-pywalfox.json 软链
   # 不由 home-manager 声明，因为目标（dank-pywalfox.json）是 DMS 在运行时
   # 才生成的，声明式激活会在目标缺失时产生悬空软链/激活失败。
-  # 改由 modules/nixos/system/desktop/dms.nix 的 pywalfox-colors 用户服务在
+  # 改由 modules/nixos/desktop/dms.nix 的 pywalfox-colors 用户服务在
   # DMS 写出调色板后创建并刷新。
 in
 {

@@ -5,10 +5,10 @@
 #   2. 跑 `nvfetcher -c ./nvfetcher.toml` 查询上游版本号，若与
 #      _sources/generated.json 不一致则下载并重算 hash，结果写入
 #      _sources/generated.{nix,json}；
-#   3. 顶层 sources.nix 把 _sources/generated.nix 暴露为 attrset；
-#   4. 各 *.nix 包定义通过 `pkgs.callPackage ../../fetch/sources.nix { }`
-#      拿到 sources，再用 `callPackage ./xxx.nix { inherit sources; }`
-#      注入具体包定义；
+#   3. lib/nvfetcher-sources.nix 把 _sources/generated.nix 暴露为 attrset，
+#      再由 lib/default.nix 暴露为 `flake.lib.sources`；
+#   4. 各 *.nix 包定义通过 `flake.lib.sources pkgs` 拿到 sources，
+#      再注入具体包定义；
 #   5. CI / 本地 hook 可在每次升级后跑 `nixos-rebuild switch` 验证。
 #
 # ----------------------------------------------------------------------
@@ -91,22 +91,6 @@ src.webpage = "https://linux.weixin.qq.com/"
 src.regex = 'main-section__bd-version[^>]*>([0-9.]+)<'
 fetch.url = "https://dldir1v6.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage"
 
-# fluxdown：zerx-lab 维护的多协议下载管理器（HTTP / FTP / BitTorrent /
-# eD2K / HLS / DASH，Rust + Flutter）。上游只在 GitHub release 发
-# x86_64 AppImage，nixpkgs 不收录，走 appimageTools.wrapType2 解包
-# （同 genoffice.nix / motrix.nix）。
-#
-# tag `vX.Y.Z` → asset 名 `FluxDown-X.Y.Z-linux-x64.AppImage`
-# （asset 名不带 v 前缀，与 wechat / kelivo 同款：strip `v` 后 $ver 拼回）。
-#
-# 仅跟踪 linux-x64 AppImage（与本机一致）；aarch64 的 hash 在 fluxdown.nix
-# 里通过 callPackage 二次处理（同 zedg.nix / wechat.nix / motrix.nix
-# 的多架构方案）。
-[fluxdown]
-src.manual = "0.4.8"
-fetch.url = "https://github.com/zerx-lab/FluxDown/releases/download/v$ver/FluxDown-$ver-linux-x64.AppImage"
-
-
 # === B 组：git 分支跟踪（main HEAD）================================
 #
 # Whisker 桌面 shell 的三个上游源。它们都没有 GitHub release，所以走
@@ -114,20 +98,20 @@ fetch.url = "https://github.com/zerx-lab/FluxDown/releases/download/v$ver/FluxDo
 # commit SHA（带前缀不影响主分支使用，只是 meta 里看着像 SHA）。fetch.github
 # 把 commit SHA 替换为 archive/<rev>.tar.gz 形式的 URL。
 
-[whisker-shell]
-src.git = "https://github.com/ekumel/whisker"
-src.branch = "main"
-fetch.github = "ekumel/whisker"
+# [whisker-shell]
+# src.git = "https://github.com/ekumel/whisker"
+# src.branch = "main"
+# fetch.github = "ekumel/whisker"
 
-[whisker-cli]
-src.git = "https://github.com/corecathx/whisker-cli"
-src.branch = "main"
-fetch.github = "corecathx/whisker-cli"
+# [whisker-cli]
+# src.git = "https://github.com/corecathx/whisker-cli"
+# src.branch = "main"
+# fetch.github = "corecathx/whisker-cli"
 
-[outfit-fonts]
-src.git = "https://github.com/Outfitio/Outfit-Fonts"
-src.branch = "main"
-fetch.github = "Outfitio/Outfit-Fonts"
+# [outfit-fonts]
+# src.git = "https://github.com/Outfitio/Outfit-Fonts"
+# src.branch = "main"
+# fetch.github = "Outfitio/Outfit-Fonts"
 
 # ----------------------------------------------------------------------
 # C 组：commit-pin 跟踪（src.manual + fetch.github / fetch.url）。
@@ -159,8 +143,8 @@ fetch.url = "https://github.com/ful1e5/Bibata_Cursor/releases/download/v$ver/Bib
 # ----------------------------------------------------------------------
 
 # dwproton：Dawn Winery 维护的 Proton 分支（基于 Proton-CachyOS），
-# 用作 Steam 的第三方兼容工具（见 modules/system/dwproton.nix 与
-# modules/system/gaming.nix）。上游没有 GitHub release，只在自建
+# 用作 Steam 的第三方兼容工具（见 packages/dwproton.nix 与
+# modules/nixos/gaming.nix）。上游没有 GitHub release，只在自建
 # Forgejo（dawn.wine）发 x86_64 预编译 tarball，所以用 src.manual
 # 记录完整 tag，再用 fetch.url 拼资产名。
 #

@@ -1,7 +1,7 @@
 # 用户空间 Hyprland 自定义配置（home-manager）。
 #
 # `~/.config/hypr/hyprland.lua` 由 DankMaterialShell 接管
-# （见 modules/nixos/system/desktop/dms.nix）：DMS 会生成主配置并 require
+# （见 modules/nixos/desktop/dms.nix）：DMS 会生成主配置并 require
 # `dms.colors / outputs / layout / cursor / binds / binds-user / windowrules`。
 # 本模块不再生成 hyprland.lua，只生成 ~/.config/hypr/custom.lua：
 # 一份由用户在主配置末尾手动 `require("custom")` 载入的自定义层。
@@ -45,7 +45,7 @@ let
   # hyprland-scroll-overview：类 niri 的滚动工作区概览（Hyprland 插件）。
   # 必须用与运行中的合成器完全相同的 Hyprland 包来构建：合成器由
   # programs.hyprland.package 设为 inputs.hyprland 的 main 包（见
-  # modules/nixos/system/desktop/hyprland.nix），这里传入同一个包。若用 pkgs.hyprland
+  # modules/nixos/desktop/hyprland.nix），这里传入同一个包。若用 pkgs.hyprland
   # （nixpkgs 的 0.56.2）构建，PLUGIN_INIT 的 API 哈希校验会失败，插件被拒绝
   # 加载，其配置项（plugin.scrolloverview.*）也就始终是 unknown config key。
   # 构建步骤与上游 flake 的 packages.scrolloverview 相同（见 flake.nix 的 input）。

@@ -1,6 +1,6 @@
 # nvfetcher 跟踪的第三方预编译包。
 #
-# 版本 / hash 见 fetch/_sources/generated.nix，上游清单见 fetch/nvfetcher.toml，
+# 版本 / hash 见 _sources/generated.nix，上游清单见 nvfetcher.toml，
 # 各自的打包细节在对应 packages/*.nix 文件头部；包由 blueprint 暴露为
 # perSystem.self.<name>（packages/ 下的包自己从 flake.lib.sources 取源）。
 { pkgs, perSystem, ... }:

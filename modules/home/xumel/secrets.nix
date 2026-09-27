@@ -2,7 +2,7 @@
 #
 # token 本体由系统侧 ragenix 在激活时解密到 /run/agenix/github-netrc
 # （密文 secrets/github-netrc.age，系统模块见
-# modules/nixos/system/nix-github-auth.nix），这里只把 ~/.config/nix/netrc
+# modules/nixos/nix-github-auth.nix），这里只把 ~/.config/nix/netrc
 # 软链过去——store 里不再出现明文。
 #
 # 覆盖范围一览：

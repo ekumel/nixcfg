@@ -9,9 +9,21 @@
     ./hardware.nix
     ./settings.nix
 
-    # 通用系统模块：modules/nixos/system/（blueprint 暴露为
-    # flake.modules.nixos.system）。
-    flake.modules.nixos.system
+    # 通用系统模块：modules/nixos/ 下每个 <name>.nix 由 blueprint
+    # 暴露为 flake.modules.nixos.<name>，这里按需逐个引入。
+    flake.modules.nixos.boot
+    flake.modules.nixos.nix
+    flake.modules.nixos.networking
+    flake.modules.nixos.users
+    flake.modules.nixos.shell
+    flake.modules.nixos.audio
+    flake.modules.nixos.fonts
+    flake.modules.nixos.input-method
+    flake.modules.nixos.virtualisation
+    flake.modules.nixos.gaming
+    flake.modules.nixos.nix-github-auth
+    flake.modules.nixos.desktop
+    flake.modules.nixos.packages
   ];
 
   # 激活时遇到已存在的真实文件先备份为 *.hm-backup（例如 DMS 运行时

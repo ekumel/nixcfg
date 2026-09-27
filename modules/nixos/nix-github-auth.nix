@@ -19,7 +19,7 @@
     identityPaths = [ "/home/xumel/.config/age/keys.txt" ];
 
     secrets.github-netrc = {
-      file = ../../../secrets/github-netrc.age;
+      file = ../../secrets/github-netrc.age;
       # xumel 要读它来生成用户侧 netrc；root 的 nix 守护进程不受权限位限制。
       owner = "xumel";
       mode = "0400";

@@ -20,7 +20,7 @@ let
       # 缺失——fcitx5 托盘图标正是用它，所以会变成空白。
       iconTheme = "Colloid";
 
-      # 来自系统模块安装的 Darkly 包（见 modules/nixos/system/desktop/qt.nix）。
+      # 来自系统模块安装的 Darkly 包（见 modules/nixos/desktop/qt.nix）。
       style = "Darkly";
       colorScheme = "/home/xumel/.local/share/color-schemes/DankMatugen.colors";
       # 与 fonts.nix 安装的字体对应（霞鹜文楷 / Maple Mono NF CN）。

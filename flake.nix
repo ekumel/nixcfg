@@ -68,6 +68,7 @@
   #   modules/nixos/<name>               -> flake.modules.nixos.<name>（nixosModules.<name>）
   #   modules/home/<name>                -> flake.modules.home.<name>（homeModules.<name>）
   #   packages/<name>.nix                -> packages.<system>.<name>（并自动进 flake checks）
+  #   formatter.nix                      -> formatter.<system>（nix fmt）
   #   lib/default.nix                    -> flake.lib
   outputs =
     inputs:
@@ -79,7 +80,7 @@
 
       # 系统空间与 packages/ 共用同一份 nixpkgs 实例：blueprint 会把它作为
       # nixpkgs.pkgs 注入主机，所以 nixpkgs.config 只能在这里声明
-      # （modules/nixos/system/nix.nix 不能再设 nixpkgs.config，会冲突）。
+      # （modules/nixos/nix.nix 不能再设 nixpkgs.config，会冲突）。
       nixpkgs.config.allowUnfree = true;
     };
 }

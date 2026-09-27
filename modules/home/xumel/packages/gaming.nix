@@ -2,7 +2,7 @@
 { pkgs, perSystem, ... }:
 
 let
-  # 与 modules/nixos/system/gaming.nix 给 Steam 用的是同一个包
+  # 与 modules/nixos/gaming.nix 给 Steam 用的是同一个包
   # （packages/dwproton.nix，blueprint 暴露为 perSystem.self.dwproton）。
   dwproton = perSystem.self.dwproton;
 in

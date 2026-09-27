@@ -11,9 +11,10 @@
     ./packages
     ./programs/dms-mode-hook.nix
     ./programs/fish.nix
+    ./programs/helix.nix
     ./programs/hyprland.nix
     ./programs/input-method.nix
-    ./programs/matugen.nix
+    ./programs/matugen
     ./programs/nixvim
     ./programs/qt.nix
     ./programs/xsettingsd.nix
