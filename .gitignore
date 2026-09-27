@@ -8,5 +8,3 @@
 /result
 /result-*
 /.direnv/
-
-# 注意：secrets/*.age 是加密密文，必须提交，不要忽略 secrets/。
