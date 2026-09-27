@@ -2,7 +2,7 @@
 #
 #   - 「输入」由 home-manager 声明式管理：~/.config/matugen/config.toml
 #     （本模块生成），模板直接引用 Nix store 里的文件（只读，安全）。
-#     模板源码在 modules/home/xumel/programs/matugen-templates/（部分取自
+#     模板源码在 modules/home/xumel/programs/templates/（部分取自
 #     InioX/matugen-themes）。
 #   - 「输出」由 matugen / DMS 在运行时写入。这些路径故意不出现在
 #     home-manager 的 xdg.configFile 里，否则会被软链成只读 store 路径，
@@ -22,7 +22,7 @@
 { pkgs, ... }:
 
 let
-  templatesDir = ./matugen-templates;
+  templatesDir = ./templates;
 
   matugenConfig = (pkgs.formats.toml { }).generate "matugen-config.toml" {
     config = {
