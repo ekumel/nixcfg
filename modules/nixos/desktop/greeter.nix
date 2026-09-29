@@ -30,8 +30,10 @@
         }
         environment {
           QT_QPA_PLATFORMTHEME "qtengine"
-          XCURSOR_THEME "Bibata-Modern-Ice"
-          XCURSOR_SIZE "48"
+        }
+        cursor {
+            xcursor-theme "Bibata-Modern-Ice"
+            xcursor-size 48
         }
       '';
     };

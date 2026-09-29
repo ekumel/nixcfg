@@ -14,6 +14,27 @@
         },
         "version": "2.0.7"
     },
+    "clamav-gui": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "clamav-gui",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "wusel1007",
+            "repo": "clamav-gui",
+            "rev": "v1.4.7",
+            "sha256": "sha256-0bxGQEekWdzMhIn5DuqLBMI6GTFWpdOQ35KxKvOnSU8=",
+            "sparseCheckout": [],
+            "type": "github"
+        },
+        "version": "v1.4.7"
+    },
     "darkly-gtk": {
         "cargoLock": null,
         "date": null,
@@ -50,21 +71,6 @@
         },
         "version": "dwproton-11.0-13"
     },
-    "fluxdown": {
-        "cargoLock": null,
-        "date": null,
-        "extract": null,
-        "name": "fluxdown",
-        "passthru": null,
-        "pinned": false,
-        "src": {
-            "name": null,
-            "sha256": "sha256-YM2NBr+2YACNW61YklgQ/umAlEpYG5hFGWLKgXbOYF0=",
-            "type": "url",
-            "url": "https://github.com/zerx-lab/FluxDown/releases/download/v0.4.8/FluxDown-0.4.8-linux-x64.AppImage"
-        },
-        "version": "0.4.8"
-    },
     "genoffice": {
         "cargoLock": null,
         "date": null,
@@ -74,11 +80,11 @@
         "pinned": false,
         "src": {
             "name": null,
-            "sha256": "sha256-j85S4/4yjJVD8GcGJ34R+WTPp3maFg7QYNShfh0obpc=",
+            "sha256": "sha256-iYKCjYfFFe4YzfezxahhCbwMl+FvkBkogZGSnhxOQWw=",
             "type": "url",
-            "url": "https://github.com/genspark-ai/genoffice/releases/download/v0.10.639/GenOffice-0.10.639.AppImage"
+            "url": "https://github.com/genspark-ai/genoffice/releases/download/v0.11.0/GenOffice-0.11.0.AppImage"
         },
-        "version": "0.10.639"
+        "version": "0.11.0"
     },
     "kelivo": {
         "cargoLock": null,
@@ -95,27 +101,6 @@
         },
         "version": "v1.2.6+73"
     },
-    "outfit-fonts": {
-        "cargoLock": null,
-        "date": "2023-03-27",
-        "extract": null,
-        "name": "outfit-fonts",
-        "passthru": null,
-        "pinned": false,
-        "src": {
-            "deepClone": false,
-            "fetchSubmodules": false,
-            "leaveDotGit": false,
-            "name": null,
-            "owner": "Outfitio",
-            "repo": "Outfit-Fonts",
-            "rev": "902773808eb372f70fb34e8946dd1ffe604efc79",
-            "sha256": "sha256-k7tAuUdZ6jjPesy1bTJ0mWIm7qXZp0r+cMvja0w2T60=",
-            "sparseCheckout": [],
-            "type": "github"
-        },
-        "version": "902773808eb372f70fb34e8946dd1ffe604efc79"
-    },
     "wechat": {
         "cargoLock": null,
         "date": null,
@@ -131,48 +116,6 @@
         },
         "version": "4.1.13"
     },
-    "whisker-cli": {
-        "cargoLock": null,
-        "date": "2026-09-02",
-        "extract": null,
-        "name": "whisker-cli",
-        "passthru": null,
-        "pinned": false,
-        "src": {
-            "deepClone": false,
-            "fetchSubmodules": false,
-            "leaveDotGit": false,
-            "name": null,
-            "owner": "corecathx",
-            "repo": "whisker-cli",
-            "rev": "44d7cc010e99400b5aa586d21f1f3a3e644c42a6",
-            "sha256": "sha256-jel1G3T2HGtiXLR6j48g5alSzPTQMiADUtoTfGeRTOo=",
-            "sparseCheckout": [],
-            "type": "github"
-        },
-        "version": "44d7cc010e99400b5aa586d21f1f3a3e644c42a6"
-    },
-    "whisker-shell": {
-        "cargoLock": null,
-        "date": "2026-09-20",
-        "extract": null,
-        "name": "whisker-shell",
-        "passthru": null,
-        "pinned": false,
-        "src": {
-            "deepClone": false,
-            "fetchSubmodules": false,
-            "leaveDotGit": false,
-            "name": null,
-            "owner": "ekumel",
-            "repo": "whisker",
-            "rev": "24c310917f9d62e555d6a56aea8447ae051500ff",
-            "sha256": "sha256-1hgKWAiIdUUmRiU9lgBX6sQ/B4ZUhXm5c8XfN514QHY=",
-            "sparseCheckout": [],
-            "type": "github"
-        },
-        "version": "24c310917f9d62e555d6a56aea8447ae051500ff"
-    },
     "zedg": {
         "cargoLock": null,
         "date": null,
@@ -182,10 +125,10 @@
         "pinned": false,
         "src": {
             "name": null,
-            "sha256": "sha256-GMXj/BndMINa7NjwNDtYOrQ/HPn2eCubD04dNfjpkMQ=",
+            "sha256": "sha256-2tkCTgXH4/bg5UjwnVqmLrHbO3BIw+nyCxQRKpa6hlA=",
             "type": "url",
-            "url": "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.20.2/zedg-zh-cn-linux-x86_64-v1.20.2.tar.gz"
+            "url": "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.21.0/zedg-zh-cn-linux-x86_64-v1.21.0.tar.gz"
         },
-        "version": "v1.20.2"
+        "version": "v1.21.0"
     }
 }

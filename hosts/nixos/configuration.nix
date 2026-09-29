@@ -24,6 +24,7 @@
     flake.modules.nixos.nix-github-auth
     flake.modules.nixos.desktop
     flake.modules.nixos.packages
+    flake.modules.nixos.security
   ];
 
   # 激活时遇到已存在的真实文件先备份为 *.hm-backup（例如 DMS 运行时

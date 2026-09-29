@@ -14,6 +14,17 @@
       sha256 = "sha256-poyuYMTccGNQ4ZTryRxf5IvHvJ1Z4RlVWDSip+5QeO8=";
     };
   };
+  clamav-gui = {
+    pname = "clamav-gui";
+    version = "v1.4.7";
+    src = fetchFromGitHub {
+      owner = "wusel1007";
+      repo = "clamav-gui";
+      rev = "v1.4.7";
+      fetchSubmodules = false;
+      sha256 = "sha256-0bxGQEekWdzMhIn5DuqLBMI6GTFWpdOQ35KxKvOnSU8=";
+    };
+  };
   darkly-gtk = {
     pname = "darkly-gtk";
     version = "36d24ba0fed2b5274cfe28100a3104465fb69516";
@@ -33,20 +44,12 @@
       sha256 = "sha256-lMkSsyBeH5o7lmFOo9w5+jVCETIB4G44LbD3w8XSQfQ=";
     };
   };
-  fluxdown = {
-    pname = "fluxdown";
-    version = "0.4.8";
-    src = fetchurl {
-      url = "https://github.com/zerx-lab/FluxDown/releases/download/v0.4.8/FluxDown-0.4.8-linux-x64.AppImage";
-      sha256 = "sha256-YM2NBr+2YACNW61YklgQ/umAlEpYG5hFGWLKgXbOYF0=";
-    };
-  };
   genoffice = {
     pname = "genoffice";
-    version = "0.10.639";
+    version = "0.11.0";
     src = fetchurl {
-      url = "https://github.com/genspark-ai/genoffice/releases/download/v0.10.639/GenOffice-0.10.639.AppImage";
-      sha256 = "sha256-j85S4/4yjJVD8GcGJ34R+WTPp3maFg7QYNShfh0obpc=";
+      url = "https://github.com/genspark-ai/genoffice/releases/download/v0.11.0/GenOffice-0.11.0.AppImage";
+      sha256 = "sha256-iYKCjYfFFe4YzfezxahhCbwMl+FvkBkogZGSnhxOQWw=";
     };
   };
   kelivo = {
@@ -57,18 +60,6 @@
       sha256 = "sha256-QTG/BuYbsarMAzy/ktGljiEE2GY6h4iJvDdt1EavS8U=";
     };
   };
-  outfit-fonts = {
-    pname = "outfit-fonts";
-    version = "902773808eb372f70fb34e8946dd1ffe604efc79";
-    src = fetchFromGitHub {
-      owner = "Outfitio";
-      repo = "Outfit-Fonts";
-      rev = "902773808eb372f70fb34e8946dd1ffe604efc79";
-      fetchSubmodules = false;
-      sha256 = "sha256-k7tAuUdZ6jjPesy1bTJ0mWIm7qXZp0r+cMvja0w2T60=";
-    };
-    date = "2023-03-27";
-  };
   wechat = {
     pname = "wechat";
     version = "4.1.13";
@@ -77,36 +68,12 @@
       sha256 = "sha256-T1StKQLs1vb9xWgLc1R/gNVCO/RwsBI3pXmi5bPK7us=";
     };
   };
-  whisker-cli = {
-    pname = "whisker-cli";
-    version = "44d7cc010e99400b5aa586d21f1f3a3e644c42a6";
-    src = fetchFromGitHub {
-      owner = "corecathx";
-      repo = "whisker-cli";
-      rev = "44d7cc010e99400b5aa586d21f1f3a3e644c42a6";
-      fetchSubmodules = false;
-      sha256 = "sha256-jel1G3T2HGtiXLR6j48g5alSzPTQMiADUtoTfGeRTOo=";
-    };
-    date = "2026-09-02";
-  };
-  whisker-shell = {
-    pname = "whisker-shell";
-    version = "24c310917f9d62e555d6a56aea8447ae051500ff";
-    src = fetchFromGitHub {
-      owner = "ekumel";
-      repo = "whisker";
-      rev = "24c310917f9d62e555d6a56aea8447ae051500ff";
-      fetchSubmodules = false;
-      sha256 = "sha256-1hgKWAiIdUUmRiU9lgBX6sQ/B4ZUhXm5c8XfN514QHY=";
-    };
-    date = "2026-09-20";
-  };
   zedg = {
     pname = "zedg";
-    version = "v1.20.2";
+    version = "v1.21.0";
     src = fetchurl {
-      url = "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.20.2/zedg-zh-cn-linux-x86_64-v1.20.2.tar.gz";
-      sha256 = "sha256-GMXj/BndMINa7NjwNDtYOrQ/HPn2eCubD04dNfjpkMQ=";
+      url = "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.21.0/zedg-zh-cn-linux-x86_64-v1.21.0.tar.gz";
+      sha256 = "sha256-2tkCTgXH4/bg5UjwnVqmLrHbO3BIw+nyCxQRKpa6hlA=";
     };
   };
 }
