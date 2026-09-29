@@ -14,17 +14,6 @@
       sha256 = "sha256-poyuYMTccGNQ4ZTryRxf5IvHvJ1Z4RlVWDSip+5QeO8=";
     };
   };
-  clamav-gui = {
-    pname = "clamav-gui";
-    version = "v1.4.7";
-    src = fetchFromGitHub {
-      owner = "wusel1007";
-      repo = "clamav-gui";
-      rev = "v1.4.7";
-      fetchSubmodules = false;
-      sha256 = "sha256-0bxGQEekWdzMhIn5DuqLBMI6GTFWpdOQ35KxKvOnSU8=";
-    };
-  };
   darkly-gtk = {
     pname = "darkly-gtk";
     version = "36d24ba0fed2b5274cfe28100a3104465fb69516";

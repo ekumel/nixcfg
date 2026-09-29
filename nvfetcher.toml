@@ -32,14 +32,6 @@
 
 # === A 组：release 跟踪 =============================================
 
-# clamav-gui：ClamAV 的图形界面（基于上游 Qt6 + CMake 源码构建）。
-# 上游没有 release asset，只发 GitHub tag。nvfetcher 走 fetch.github 拉归档
-# tarball，URL 中 tag 必须带 v 前缀，所以保留 v 在 $ver 里（不剥前缀），
-# 与 zedg 同款写法。版本号在 meta 里会带 v 前缀（仅显示用途）。
-[clamav-gui]
-src.github = "wusel1007/clamav-gui"
-fetch.github = "wusel1007/clamav-gui"
-
 # kelivo：Flutter LLM 客户端。GitHub release 同时提供 .AppImage /
 # .deb / .rpm / .tar.gz（已解压版本）。本配置用 .tar.gz（已解压目录树），
 # 可以直接进 buildFHSEnv 的 runScript（无需 AppImage 解包）。

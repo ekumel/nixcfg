@@ -14,27 +14,6 @@
         },
         "version": "2.0.7"
     },
-    "clamav-gui": {
-        "cargoLock": null,
-        "date": null,
-        "extract": null,
-        "name": "clamav-gui",
-        "passthru": null,
-        "pinned": false,
-        "src": {
-            "deepClone": false,
-            "fetchSubmodules": false,
-            "leaveDotGit": false,
-            "name": null,
-            "owner": "wusel1007",
-            "repo": "clamav-gui",
-            "rev": "v1.4.7",
-            "sha256": "sha256-0bxGQEekWdzMhIn5DuqLBMI6GTFWpdOQ35KxKvOnSU8=",
-            "sparseCheckout": [],
-            "type": "github"
-        },
-        "version": "v1.4.7"
-    },
     "darkly-gtk": {
         "cargoLock": null,
         "date": null,
