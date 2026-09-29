@@ -12,6 +12,7 @@ in
   # 32 位运行库由 programs.steam 打开的 hardware.graphics.enable32Bit 提供。
   home.packages = [
     (pkgs.bottles.override { removeWarningPopup = true; })
+    pkgs.prismlauncher
   ];
 
   # 把 dwproton 作为自定义 Proton runner 暴露给 Bottles。

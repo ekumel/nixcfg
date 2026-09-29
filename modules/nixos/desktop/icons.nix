@@ -8,14 +8,15 @@
 { pkgs, flake, lib, ... }:
 
 let
-  # nvfetcher 源：统一从 flake.lib.sources 取（见 lib/default.nix）。
-  sources = flake.lib.sources pkgs;
+  # 第三方源统一通过 flake inputs 跟踪（见 flake.nix）。
+  # `flake.inputs.<name>` 在 `flake = false` 时是 store path 字符串（prefetch
+  # 后的单文件或 tarball 解包目录），可直接当 src 用。
 
   bibata-modern-ice = pkgs.stdenvNoCC.mkDerivation {
-    pname = sources.bibata-modern-ice.pname;
-    version = sources.bibata-modern-ice.version;
+    pname = "bibata-modern-ice";
+    version = "2.0.7";
 
-    src = sources.bibata-modern-ice.src;
+    src = flake.inputs.bibata-modern-ice;
 
     dontConfigure = true;
     dontBuild = true;

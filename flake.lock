@@ -57,6 +57,31 @@
         "type": "github"
       }
     },
+    "baidunetdisk": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-EzC+4beC/sb5iskriQ9sqHKigvvM2spFoR9WAMbaBU0=",
+        "type": "file",
+        "url": "https://issuecdn.baidupcs.com/issue/netdisk/LinuxGuanjia/4.17.7/baidunetdisk_4.17.7_amd64.deb"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://issuecdn.baidupcs.com/issue/netdisk/LinuxGuanjia/4.17.7/baidunetdisk_4.17.7_amd64.deb"
+      }
+    },
+    "bibata-modern-ice": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1718285824,
+        "narHash": "sha256-SG/NQd3K9DHNr9o4m49LJH+UC/a1eROUjrAQDSn3TAU=",
+        "type": "tarball",
+        "url": "https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Ice.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Ice.tar.xz"
+      }
+    },
     "blueprint": {
       "inputs": {
         "nixpkgs": [
@@ -166,6 +191,22 @@
         "type": "github"
       }
     },
+    "darkly-gtk": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777231335,
+        "narHash": "sha256-9qJ/nKXNXbX9e7iUt906gxordEU4VMXhq5Vhs9uQ7b8=",
+        "owner": "wrymt",
+        "repo": "darkly-gtk",
+        "rev": "36d24ba0fed2b5274cfe28100a3104465fb69516",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wrymt",
+        "repo": "darkly-gtk",
+        "type": "github"
+      }
+    },
     "darwin": {
       "inputs": {
         "nixpkgs": [
@@ -209,6 +250,19 @@
         "owner": "AvengeMedia",
         "repo": "DankMaterialShell",
         "type": "github"
+      }
+    },
+    "dwproton": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789931294,
+        "narHash": "sha256-INbvpKk01gMyt72Z2jlJvov5k4LZztpFuiYgVkGBc1I=",
+        "type": "tarball",
+        "url": "https://dawn.wine/dawn-winery/dwproton/releases/download/dwproton-11.0-13/dwproton-11.0-13-x86_64.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://dawn.wine/dawn-winery/dwproton/releases/download/dwproton-11.0-13/dwproton-11.0-13-x86_64.tar.xz"
       }
     },
     "flake-compat": {
@@ -280,6 +334,30 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
+      }
+    },
+    "genoffice": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-g0864HTA8H/6xIWBJtywuRlu0BimEvJmSnnrBrCTWhY=",
+        "type": "file",
+        "url": "https://github.com/genspark-ai/genoffice/releases/download/v0.11.0/GenOffice-0.11.0.AppImage"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/genspark-ai/genoffice/releases/download/v0.11.0/GenOffice-0.11.0.AppImage"
+      }
+    },
+    "goquark": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-+dq+cEvcGHdbeQemDESWS3YeMTvdysRRA7hVUTTl0wQ=",
+        "type": "file",
+        "url": "https://github.com/ButterFuture/GoQuark/releases/download/v1.0.3/goquark_1.0.3_linux_amd64"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/ButterFuture/GoQuark/releases/download/v1.0.3/goquark_1.0.3_linux_amd64"
       }
     },
     "home-manager": {
@@ -681,6 +759,19 @@
         "type": "github"
       }
     },
+    "kelivo": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788700993,
+        "narHash": "sha256-XqOBs09/aZC8iQuzpEKVtU5HHz0TSDWFws5bmLNGwFE=",
+        "type": "tarball",
+        "url": "https://github.com/Chevey339/kelivo/releases/download/v1.2.6/Kelivo_linux_1.2.6%2B73.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/Chevey339/kelivo/releases/download/v1.2.6/Kelivo_linux_1.2.6%2B73.tar.gz"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1789684949,
@@ -817,17 +908,26 @@
     },
     "root": {
       "inputs": {
+        "baidunetdisk": "baidunetdisk",
+        "bibata-modern-ice": "bibata-modern-ice",
         "blueprint": "blueprint",
         "dank-greeter": "dank-greeter",
         "darkly": "darkly",
+        "darkly-gtk": "darkly-gtk",
         "dms": "dms",
+        "dwproton": "dwproton",
+        "genoffice": "genoffice",
+        "goquark": "goquark",
         "home-manager": "home-manager",
         "hyprland": "hyprland",
         "hyprland-scroll-overview": "hyprland-scroll-overview",
+        "kelivo": "kelivo",
         "nixpkgs": "nixpkgs_2",
         "nixvim": "nixvim",
         "qtengine": "qtengine",
         "ragenix": "ragenix",
+        "wechat": "wechat",
+        "zedg": "zedg",
         "zen-browser": "zen-browser"
       }
     },
@@ -929,6 +1029,18 @@
         "type": "github"
       }
     },
+    "wechat": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-QMFpSn+/jovexCMXqttv2/VeqfvMZO2IejPzLg2t6ug=",
+        "type": "file",
+        "url": "https://dldir1.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://dldir1.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage"
+      }
+    },
     "xdph": {
       "inputs": {
         "hyprland-protocols": [
@@ -968,6 +1080,19 @@
         "owner": "hyprwm",
         "repo": "xdg-desktop-portal-hyprland",
         "type": "github"
+      }
+    },
+    "zedg": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790198203,
+        "narHash": "sha256-Q+opF2Xdj9IorHwHcmQLSQo9YnI/eFN+OMZCpKm6IZs=",
+        "type": "tarball",
+        "url": "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.21.0/zedg-zh-cn-linux-x86_64-v1.21.0.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.21.0/zedg-zh-cn-linux-x86_64-v1.21.0.tar.gz"
       }
     },
     "zen-browser": {

@@ -54,7 +54,12 @@ let
   };
 in
 stdenvNoCC.mkDerivation {
-  inherit pname version src meta;
+  inherit
+    pname
+    version
+    src
+    meta
+    ;
 
   # flake URL input 拿到的是单一可执行文件（prefetch 后的 store path），
   # 没有 unpack 阶段。也不需要 build / configure。

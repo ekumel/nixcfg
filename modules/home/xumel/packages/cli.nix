@@ -18,8 +18,9 @@
     rustfmt
     clippy
 
-    # 仓库维护：nvfetcher 跟踪根目录 nvfetcher.toml 的第三方源，nixfmt 格式化本仓库。
-    nvfetcher
+    # 仓库维护：scripts/update-third-party.sh 维护第三方源（通过 flake inputs + flake.lock），
+    # jq 解析 GitHub / Forgejo Releases API 响应，nixfmt 格式化本仓库。
+    jq
     nixfmt
 
     # 密钥维护：ragenix 加解密 secrets/*.age（规则见 secrets/secrets.nix）。

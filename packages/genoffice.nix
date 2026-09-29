@@ -24,7 +24,13 @@
 # 并把 .desktop 里的 Exec=AppRun 改成 Exec=genoffice，
 # 让桌面环境能从 $out/share/applications 扫到启动项。
 #
-# 版本与 src 由 _sources/generated.nix 提供（nvfetcher 跟踪 GitHub release）。
+# 版本与 src 由 flake input 提供（flake.nix 的 genoffice URL input，
+# flake = false）。这里把 version 钉为字面量；升级流程：
+#   1. 跑 `./scripts/update-third-party.sh genoffice`：脚本探测 GitHub
+#      Releases API、取最新 tag、生成新 URL、修改 flake.nix 的 url 字段、
+#      `nix flake lock --update-input genoffice`；
+#   2. 同步更新下方 version 字面量（脚本不会改 .nix 里的 pname/version）；
+#   3. `nix flake check` 与 `nixos-rebuild switch` 验证。
 {
   pkgs,
   flake,
@@ -32,12 +38,10 @@
 
 let
   inherit (pkgs) appimageTools;
-  # nvfetcher 源：统一从 flake.lib.sources 取（见 lib/default.nix）。
-  sources = flake.lib.sources pkgs;
 
-  pname = sources.genoffice.pname;
-  version = sources.genoffice.version;
-  appimageSrc = sources.genoffice.src;
+  pname = "genoffice";
+  version = "0.11.0";
+  appimageSrc = flake.inputs.genoffice;
 
   # wrapType2 会在内部调 extract，把产物放进自己的 contents 字段。
   # 为了在 extraInstallCommands 里能引用这份解包目录，先手动 extract

@@ -60,6 +60,85 @@
       # nixvim 现在作为 home-manager 模块在用户空间导入
       # （见 modules/home/xumel/default.nix）。
     };
+
+    # ---- 第三方预编译包 / 主题 ----
+    #
+    # 这些源以前由 npins / nvfetcher 跟踪，现在统一收进 flake inputs，共用
+    # `flake.lock`。每个 input 都设 `flake = false`，因此 `flake.inputs.<name>`
+    # 在求值时直接得到一个 store path 字符串（prefetch 后的单文件或 tarball
+    # 解包目录），packages/*.nix 与 system 模块可直接把它当 src 用，不再需要
+    # `flake.lib.sources` 包装层。
+    #
+    # 升级脚本：scripts/update-third-party.sh（~150 行 bash）。
+    #   - URL 类（带版本号字面量）：脚本探测上游 → 改 flake.nix 的 url 字段
+    #     → `nix flake lock --update-input <name>` 重锁；
+    #   - git 类（darkly-gtk）：`nix flake update --update-input darkly-gtk`
+    #     即可，flake.lock 会自动滚到 main 最新提交。
+    #
+    # 不要直接 `nix flake update`（无参）——它会把 nixpkgs / Hyprland 等全滚，
+    # 那些由各上游版本节奏控制，不在本脚本范围内。
+
+    # GitHub release 预编译 Flutter app（version 与 build number 在 URL 里）
+    kelivo = {
+      url = "https://github.com/Chevey339/kelivo/releases/download/v1.2.6/Kelivo_linux_1.2.6%2B73.tar.gz";
+      flake = false;
+    };
+
+    # GitHub release AppImage
+    genoffice = {
+      url = "https://github.com/genspark-ai/genoffice/releases/download/v0.11.0/GenOffice-0.11.0.AppImage";
+      flake = false;
+    };
+
+    # GitHub release tarball（含 usr/{bin,lib,share} 树）
+    zedg = {
+      url = "https://github.com/WenYin-Community/zed-globalization/releases/download/v1.21.0/zedg-zh-cn-linux-x86_64-v1.21.0.tar.gz";
+      flake = false;
+    };
+
+    # 微信 Linux AppImage：QQ 官方 dldir 不带版本号（URL 永远不变）。
+    # 版本号通过抓取 https://linux.weixin.qq.com/ 解析，
+    # 见 scripts/update-third-party.sh 里的 wechat_updater。
+    wechat = {
+      url = "https://dldir1.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage";
+      flake = false;
+    };
+
+    # GitHub release cursor tarball
+    bibata-modern-ice = {
+      url = "https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Ice.tar.xz";
+      flake = false;
+    };
+
+    # GoQuark：ButterFuture 出品的非官方夸克网盘 CLI / TUI / MCP 客户端。
+    # 单文件预编译 Go 静态二进制（无 .so），打包时直接 install 到 $out/bin/。
+    goquark = {
+      url = "https://github.com/ButterFuture/GoQuark/releases/download/v1.0.3/goquark_1.0.3_linux_amd64";
+      flake = false;
+    };
+
+    # 百度网盘 Linux 客户端（unfree）。上游仅发 .deb，
+    # URL 路径模式：LinuxGuanjia/<version>/baidunetdisk_<version>_amd64.deb。
+    baidunetdisk = {
+      url = "https://issuecdn.baidupcs.com/issue/netdisk/LinuxGuanjia/4.17.7/baidunetdisk_4.17.7_amd64.deb";
+      flake = false;
+    };
+
+    # Forgejo（dawn.wine）release tarball，非 GitHub；
+    # 探测走 Gitea v1 API：/api/v1/repos/<owner>/<repo>/releases/latest
+    dwproton = {
+      url = "https://dawn.wine/dawn-winery/dwproton/releases/download/dwproton-11.0-13/dwproton-11.0-13-x86_64.tar.xz";
+      flake = false;
+    };
+
+    # git ref：跟踪 wrymt/darkly-gtk 的 main 分支最新提交。
+    # flake.lock 会落具体 commit 与 narHash；`nix flake update darkly-gtk`
+    # 即可升到 main 最新。版本字符串（unstable-YYYY-MM-DD）由脚本从 lock
+    # 里的 lastModified 派生，同步写回 modules/nixos/desktop/gtk.nix。
+    darkly-gtk = {
+      url = "github:wrymt/darkly-gtk";
+      flake = false;
+    };
   };
 
   # outputs 由 blueprint 按目录约定生成：
@@ -69,7 +148,7 @@
   #   modules/home/<name>                -> flake.modules.home.<name>（homeModules.<name>）
   #   packages/<name>.nix                -> packages.<system>.<name>（并自动进 flake checks）
   #   formatter.nix                      -> formatter.<system>（nix fmt）
-  #   lib/default.nix                    -> flake.lib
+  #   lib/default.nix (optional)         -> flake.lib（当前未用，仓库内仅留工具函数）
   outputs =
     inputs:
     inputs.blueprint {

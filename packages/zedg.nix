@@ -11,16 +11,16 @@
 #   socket 等），Nix store 的非 FHS 路径会破坏这些路径解析——nixpkgs 里的
 #   zed-editor-fhs 就是同款做法（用 bubblewrap 构造 FHS-like 视图）。
 #
-# 版本与 src 由 _sources/generated.nix 提供（nvfetcher 跟踪 GitHub release）。
-# _sources 中只跟踪 x86_64 的 tarball，aarch64 的 hash 在此 file 内通过
-# fetchurl + 写死 hash 二次处理（nvfetcher 的 fetch.url 不支持 per-arch）。
-#
-# 升级流程：
-#   1. 跑 `nvfetcher -c ./nvfetcher.toml`，自动跟新 GitHub release；
-#   2. x86_64 的 sha256 由 nvfetcher 重算写进 generated.nix；
+# 版本与 src 由 flake input 提供（flake.nix 的 zedg URL input，
+# flake = false）。这里把 version 钉为字面量；升级流程：
+#   1. 跑 `./scripts/update-third-party.sh zedg`：脚本探测 GitHub Releases
+#      API、取最新 tag、生成新 URL、修改 flake.nix 的 url 字段、
+#      `nix flake lock --update-input zedg`；
+#   2. 同步更新下方 version 字面量（脚本不会改 .nix 里的 pname/version）；
 #   3. aarch64 的 sha256 需要人工到 release 页下载后用 nix-prefetch-url
 #      算出，填到下方 aarch64Sha256；
-#   4. `nixos-rebuild switch` 验证。
+#   4. `nix flake check` 验证；
+#   5. `nixos-rebuild switch` 验证。
 {
   pkgs,
   flake,
@@ -28,16 +28,14 @@
 
 let
   inherit (pkgs) lib stdenv buildFHSEnv;
-  # nvfetcher 源：统一从 flake.lib.sources 取（见 lib/default.nix）。
-  sources = flake.lib.sources pkgs;
 
   pname = "zedg";
-  version = sources.zedg.version;
+  version = "v1.21.0";
 
   # 与 AUR PKGBUILD 的 source_x86_64 / source_aarch64 对齐。
-  # x86_64 的 src 由 nvfetcher 写入 generated.nix（含 url + sha256）。
+  # x86_64 的 src 由 flake.nix 的 zedg URL input 提供（含 url + sha256）。
   srcBySystem = {
-    x86_64 = sources.zedg.src;
+    x86_64 = flake.inputs.zedg;
   };
 
   src = srcBySystem.${stdenv.hostPlatform.linuxArch}
@@ -46,13 +44,23 @@ let
   # 原始包：解压 tarball，按 AUR `package()` 的做法把整个 usr/ 树复制到 $out。
   unpacked = stdenv.mkDerivation {
     inherit pname version src;
+    # 当前 Nix（2.18+）flake URL input 行为有两层改动：
+    #   1) .tar.gz 自动解包到 store 里的 -source 目录，$src 就是解包后
+    #      的根目录；std unpacker 再对目录走一次 cp -r 既费时又费盘，
+    #      故跳过 unpack，installPhase 里 cd 进去。
+    #   2) 当 tarball 的「唯一非平凡顶层目录」（如本包 ./usr/）出现时，
+    #      自动把它当成 wrapper 剥掉，内容直接提到 source 根；本包
+    #      此前依赖 $src/usr/...，现在 $src 里只有 bin/lib/libexec/share，
+    #      所以下面 cp -a . $out/usr/ 重新包一层 usr/ 树，恢复 buildFHSEnv
+    #      runScript 期待的 ${unpacked}/usr/bin/zedg 路径。
+    dontUnpack = true;
     dontConfigure = true;
     dontBuild = true;
-    sourceRoot = ".";
     installPhase = ''
       runHook preInstall
-      mkdir -p "$out"
-      cp -r usr "$out/"
+      cd "$src"
+      mkdir -p "$out/usr"
+      cp -a . "$out/usr/"
       # AUR 包要求 bin 可执行。
       chmod 755 "$out/usr/bin/zedg"
       runHook postInstall

@@ -1,15 +1,16 @@
 # wechat：QQ 官方 Linux 客户端（unfree）。
 #
 # 上游仅在 https://dldir1v6.qq.com/weixin/Universal/Linux/ 提供 AppImage，
-# 且文件名不含版本号、只保留最新版，所以 fetch.url 里没有 $ver。版本号
-# 从官方下载页 https://linux.weixin.qq.com/ 的 `main-section__bd-version`
-# 元素抓取（见 nvfetcher.toml 的 [wechat]：src.webpage + src.regex）。
+# 且文件名不含版本号、只保留最新版，所以 flake.nix 的 wechat URL input 的
+# url 里没有版本占位符。版本号历史上从官方下载页 https://linux.weixin.qq.com/
+# 的 `main-section__bd-version` 元素抓取。
 #
 # 升级流程：
-#   1. `nvfetcher -c ./nvfetcher.toml` 会自动发现新版本号，并重新下载
-#      AppImage、重算 sha256 写入 _sources/generated.nix；
+#   1. 跑 `./scripts/update-third-party.sh wechat`：脚本用 curl + grep 抓
+#      官方下载页、取版本号、修改 packages/wechat.nix 里的 version 字面量
+#      （脚本与 flake URL 类不同：URL 不变、只刷 narHash 与 version）；
 #   2. 若 aarch64 也需要，手动更新下面 aarch64-linux 的 sha256；
-#   3. `nixos-rebuild switch` 验证。
+#   3. `nix flake check` 与 `nixos-rebuild switch` 验证。
 #
 # 打包策略：与 nixpkgs pkgs/by-name/we/wechat/linux.nix 完全相同——
 # appimageTools.extract 解包，patchelf --replace-needed 替换 libtiff.so.5
@@ -22,18 +23,16 @@
 
 let
   inherit (pkgs) lib stdenv appimageTools;
-  # nvfetcher 源：统一从 flake.lib.sources 取（见 lib/default.nix）。
-  sources = flake.lib.sources pkgs;
 
   inherit (stdenv.hostPlatform) system;
 
   pname = "wechat";
-  version = sources.wechat.version;
+  version = "4.1.13";
 
-  # x86_64 的 src 来自 nvfetcher；aarch64 在这里手算（nvfetcher 一个包
-  # 只能配一个 fetch.url）。
+  # x86_64 的 src 来自 flake input；aarch64 在这里手算（每个 url input
+  # 只能配一个 url）。
   srcBySystem = {
-    x86_64-linux = sources.wechat.src;
+    x86_64-linux = flake.inputs.wechat;
   };
 
   src =

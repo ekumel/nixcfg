@@ -15,5 +15,6 @@
     kazumi
     vesktop
     thunderbird
+    firefox
   ];
 }

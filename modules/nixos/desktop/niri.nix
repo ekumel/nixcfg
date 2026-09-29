@@ -2,7 +2,7 @@
 {
   # 桌面环境组件（Wayland compositor: niri）
   environment.systemPackages = with pkgs; [
-    
+    xwayland-satellite
   ];
   programs.niri.enable = true;
 

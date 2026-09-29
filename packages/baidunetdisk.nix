@@ -47,26 +47,44 @@ let
     srcBySystem.${stdenvNoCC.hostPlatform.system}
       or (throw "baidunetdisk: 不支持的系统 ${stdenvNoCC.hostPlatform.system}");
 
-  # 解包 .deb。dpkg-deb 在 Nix store 里 nixpkgs 没现成包，使用 nixpkgs 的
-  # `dpkg` 直接调用（会拉一次但走 cache）。
+  # 解包 .deb。Nix chroot 里不允许 root-owned 输出，所以不能用 dpkg-deb -x
+  # （它把 owner 设为 0:0，触发「suspicious ownership or permission」拒收）。
+  # 改为：先 `ar x` 取出 data.tar.*，再 `tar --no-same-owner` 解开。
+  # .deb 是 ar 归档，内含 control.tar.* / data.tar.* / debian-binary 三段。
   unpacked = stdenvNoCC.mkDerivation {
     inherit pname version src;
 
-    nativeBuildInputs = [ pkgs.dpkg ];
+    nativeBuildInputs = [ pkgs.binutils ];
 
+    # .deb 不是 stdEnv 默认 unpacker 识别的格式（不被 libarchive 当 tar
+    # 读），直接跳过 unpack，在 installPhase 里手解。
+    dontUnpack = true;
     dontConfigure = true;
     dontBuild = true;
 
     # .deb 的 data.tar.* 提取后根目录是 ./opt/baidunetdisk/... 与
-    # ./usr/share/...；我们只要 .deb 的 data 部分，control / postinst
-    # 不需要。
+    # ./usr/share/...；control / postinst 不需要。`ar` 来自 perl（@ARGV
+    # 列表里的 perl 包装，会拉 perl 但走 cache）。
     installPhase = ''
       runHook preInstall
       mkdir -p "$out"
-      dpkg-deb -x "$src" "$out"
-      # 确保主二进制可执行（deb 里已经是 755，但 dpkg-deb -x 偶尔
-      # 会按 umask 缩水，再 chmod 一遍保险）。
+      tmp=$(mktemp -d)
+      # ar 解开 .deb：产物里有 control.tar.* / data.tar.* / debian-binary。
+      ar x "$src" --output="$tmp"
+      # data.tar.* 可能是 .xz / .gz / .zst / 无压缩；用 tar 自动嗅探。
+      data_tar=$(ls "$tmp"/data.tar.* 2>/dev/null | head -n1)
+      if [ -z "$data_tar" ]; then
+        echo "找不到 data.tar.* in $tmp" >&2
+        ls -la "$tmp" >&2
+        exit 1
+      fi
+      # --no-same-owner：忽略 tar 内的 uid/gid，否则 Nix chroot 会拒收
+      # （root-owned 输出被认为是「suspicious ownership」）。
+      tar --extract --file="$data_tar" --directory="$out" --no-same-owner
+      # 确保主二进制可执行（deb 里已经是 755，但 tar 在某种 umask 下
+      # 可能缩水，再 chmod 一遍保险）。
       chmod +x "$out/opt/baidunetdisk/baidunetdisk"
+      rm -rf "$tmp"
       runHook postInstall
     '';
   };

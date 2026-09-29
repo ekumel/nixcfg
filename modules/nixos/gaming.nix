@@ -12,8 +12,8 @@
 #
 # dwproton：第三方 Proton 分支（Dawn Winery，基于 Proton-CachyOS），
 # nixpkgs 不收录。包定义在 packages/dwproton.nix（system / users 共用），
-# 版本与 src 由 nvfetcher 跟踪上游 dawn.wine release（nvfetcher.toml
-# 的 [dwproton]）。用 programs.steam.extraCompatPackages 注入后，Steam 重启
+# 版本与 src 由 flake.nix 的 dwproton URL input 跟踪上游 dawn.wine release。
+# 用 programs.steam.extraCompatPackages 注入后，Steam 重启
 # 即可在「设置 → 兼容性 → 强制使用特定 Steam Play 兼容性工具」里选到它。
 #
 # Bottles（Wine 前缀管理器）与把 dwproton 注册为它的 Proton runner 在

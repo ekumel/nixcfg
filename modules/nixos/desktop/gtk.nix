@@ -32,8 +32,9 @@
 #     Breeze 语义色。这样不会因某个模板缺名而让 GTK 解析失败丢弃整张表。
 { pkgs, flake, lib, ... }:
 let
-  # nvfetcher 源：统一从 flake.lib.sources 取（见 lib/default.nix）。
-  sources = flake.lib.sources pkgs;
+  # 第三方源统一通过 flake inputs 跟踪（见 flake.nix）。
+  # `flake.inputs.<name>` 在 `flake = false` 时是 store path 字符串（prefetch
+  # 后的 tarball 解包目录），可直接当 src 用——不需要 lib/sources 包装。
 
   # matugen/DMS 的运行时输出位置。与 dms.nix 里的 pywalfox 同步脚本一致，
   # 直接写绝对路径（本机单用户 xumel）。
@@ -166,7 +167,7 @@ let
     pname = "darkly-gtk";
     version = "unstable-2026-04-26";
 
-    src = sources.darkly-gtk.src;
+    src = flake.inputs.darkly-gtk;
 
     nativeBuildInputs = [ pkgs.sassc pkgs.gnused ];
 

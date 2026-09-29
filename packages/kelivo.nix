@@ -1,13 +1,15 @@
-# kelivo：Flutter LLM 客户端。nvfetcher 跟踪 GitHub release；
-# _sources/generated.nix 暴露 pname / version / src（fetchurl 形式）。
+# kelivo：Flutter LLM 客户端。flake input 跟踪（见 flake.nix 的 `kelivo`
+# URL input，flake = false）。`flake.inputs.kelivo` 在求值时直接得到 store
+# path 字符串，可直接当 src 用。
 #
 # 升级流程：
 #   1. 打开 https://github.com/Chevey339/kelivo/releases 看最新 tag 与
 #      对应的 build number（asset 文件名里的 `+N`，如 `1.2.6+73.tar.gz`）；
-#   2. 同步更新 nvfetcher.toml 的 [kelivo] 表（manual 字段 + fetch.url
-#      的路径段与文件名段，详见 toml 注释）；
-#   3. `nvfetcher -c ./nvfetcher.toml` 重算 sha256；
-#   4. `nixos-rebuild switch` 验证编译。
+#   2. 跑 `./scripts/update-third-party.sh kelivo`：脚本探测上游、修改
+#      flake.nix 的 kelivo url 字段、`nix flake lock --update-input kelivo`；
+#   3. 同步更新下方 version 字面量（脚本不会改 .nix 文件里的 pname/version）；
+#   4. `nix flake check` 验证；
+#   5. `nixos-rebuild switch` 验证编译。
 #
 # 上游 release asset `Kelivo_linux_<version>+<build>.tar.gz` 是 Flutter
 # 预编译产物：根目录有 `kelivo` 二进制、`lib/*.so` 动态库、
@@ -35,12 +37,12 @@
 
 let
   inherit (pkgs) lib stdenv buildFHSEnv makeDesktopItem imagemagick;
-  # nvfetcher 源：统一从 flake.lib.sources 取（见 lib/default.nix）。
-  sources = flake.lib.sources pkgs;
 
-  pname = sources.kelivo.pname;
-  version = sources.kelivo.version;
-  src = sources.kelivo.src;
+  # flake.inputs.X 在 flake = false 时是 store path 字符串（prefetch 后的
+  # 单文件或 tarball 解包目录），可直接当 src 用。
+  pname = "kelivo";
+  version = "v1.2.6+73";
+  src = flake.inputs.kelivo;
 
   # 上游 tarball 解压后根目录是 ./kelivo, ./lib, ./data/。
   # 把 kelivo 二进制和 lib/ 复制到 $out/，data/ 也复制（包含 flutter
@@ -48,11 +50,17 @@ let
   # 找到同级的 lib/ 和 data/。
   unpacked = stdenv.mkDerivation {
     inherit pname version src;
+    # 当前 Nix（2.18+）会把 flake URL input 指向的 .tar.gz 自动解包到
+    # store 里的 -source 目录，$src 就是解包后的根目录。让 std unpacker
+    # 对目录再走一次 cp -r 既费时又费盘，所以跳过 unpack，自己在
+    # installPhase 里 cd 进去（runPhase 只在 unpackPhase 后 cd 到
+    # sourceRoot，dontUnpack 之后这条不会触发）。
+    dontUnpack = true;
     dontConfigure = true;
     dontBuild = true;
-    sourceRoot = ".";
     installPhase = ''
       runHook preInstall
+      cd "$src"
       mkdir -p "$out"
       cp -r kelivo lib data "$out/"
       chmod +x "$out/kelivo"
@@ -81,13 +89,14 @@ let
   #   因此这里用 imagemagick 把源图缩成 index.theme 声明过的几个尺寸。
   icon = stdenv.mkDerivation {
     name = "kelivo-icon";
-    src = sources.kelivo.src;
+    src = flake.inputs.kelivo;
     nativeBuildInputs = [ imagemagick ];
+    dontUnpack = true;
     dontConfigure = true;
     dontBuild = true;
-    sourceRoot = ".";
     installPhase = ''
       runHook preInstall
+      cd "$src"
       for size in 32 48 64 128 256 512; do
         dir="$out/share/icons/hicolor/''${size}x''${size}/apps"
         mkdir -p "$dir"

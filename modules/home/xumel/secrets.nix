@@ -9,8 +9,7 @@
 #   ✓ fetchFromGitHub       → ~/.config/nix/netrc
 #   ✓ fetchurl (github.com)  → ~/.config/nix/netrc
 #   ✓ nix-prefetch-github    → ~/.config/nix/netrc
-#   ✓ nvfetcher 内部抓取     → ~/.config/nix/netrc
-#   ✓ nvchecker（API 调用）  → $GITHUB_TOKEN
+#   ✓ scripts/update-third-party.sh 探测 GitHub Releases API → ~/.config/nix/netrc
 #   ✓ cargo / pip / go 等    → $GITHUB_TOKEN
 #   ✓ nix flake / nix build  → nix.settings.netrc-file（系统侧，同一份文件）
 #   ✗ git clone / push       → git 自己读 ~/.gitconfig 与 credential helper，
