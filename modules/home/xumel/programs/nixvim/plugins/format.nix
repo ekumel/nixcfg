@@ -31,8 +31,12 @@
 
         # 显式给 rustfmt / nixfmt 指定二进制路径（其它走默认 PATH 查找）。
         formatters = {
-          nixfmt = { command = "${lib.getExe pkgs.nixfmt}"; };
-          rustfmt = { command = "${lib.getExe pkgs.rustfmt}"; };
+          nixfmt = {
+            command = "${lib.getExe pkgs.nixfmt}";
+          };
+          rustfmt = {
+            command = "${lib.getExe pkgs.rustfmt}";
+          };
         };
       };
     };

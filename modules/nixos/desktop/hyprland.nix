@@ -16,7 +16,8 @@
     # 允许运行 X11 应用（默认开启）。
     xwayland.enable = true;
     package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-    portalPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+    portalPackage =
+      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
   };
 
   # 会话中会被 Hyprland 键位 / 自动启动直接调用的工具。

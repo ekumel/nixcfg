@@ -11,7 +11,10 @@
         settings = {
           win = {
             border = "rounded";
-            padding = [ 1 2 ];
+            padding = [
+              1
+              2
+            ];
             wo.winblend = 10;
           };
           layout = {
@@ -25,28 +28,83 @@
           # which-key 的 spec / triggers 里「按键」本身用 `__unkeyed-N`（数组位置），
           # 不能用 `key = ...`（which-key 会报 Invalid field `key`）。
           spec = [
-            { __unkeyed-1 = "<leader>f"; group = "Find"; }
-            { __unkeyed-1 = "<leader>g"; group = "Git"; }
-            { __unkeyed-1 = "<leader>i"; group = "Indent"; }
-            { __unkeyed-1 = "<leader>r"; group = "Refactor"; }
-            { __unkeyed-1 = "<leader>s"; group = "LSP/Search"; }
-            { __unkeyed-1 = "<leader>t"; group = "Terminal"; }
-            { __unkeyed-1 = "<leader>m"; group = "Markdown"; }
-            { __unkeyed-1 = "<leader>b"; group = "Buffer"; }
-            { __unkeyed-1 = "<leader>c"; group = "Code"; }
-            { __unkeyed-1 = "<leader>d"; group = "Diagnostics"; }
-            { __unkeyed-1 = "<leader>j"; group = "Jump (hop)"; }
-            { __unkeyed-1 = "<leader>l"; group = "LSP"; }
-            { __unkeyed-1 = "<leader>x"; group = "Close buffer"; }
-            { __unkeyed-1 = "<leader>z"; group = "Scroll/Cursor"; }
+            {
+              __unkeyed-1 = "<leader>f";
+              group = "Find";
+            }
+            {
+              __unkeyed-1 = "<leader>g";
+              group = "Git";
+            }
+            {
+              __unkeyed-1 = "<leader>i";
+              group = "Indent";
+            }
+            {
+              __unkeyed-1 = "<leader>r";
+              group = "Refactor";
+            }
+            {
+              __unkeyed-1 = "<leader>s";
+              group = "LSP/Search";
+            }
+            {
+              __unkeyed-1 = "<leader>t";
+              group = "Terminal";
+            }
+            {
+              __unkeyed-1 = "<leader>m";
+              group = "Markdown";
+            }
+            {
+              __unkeyed-1 = "<leader>b";
+              group = "Buffer";
+            }
+            {
+              __unkeyed-1 = "<leader>c";
+              group = "Code";
+            }
+            {
+              __unkeyed-1 = "<leader>d";
+              group = "Diagnostics";
+            }
+            {
+              __unkeyed-1 = "<leader>j";
+              group = "Jump (hop)";
+            }
+            {
+              __unkeyed-1 = "<leader>l";
+              group = "LSP";
+            }
+            {
+              __unkeyed-1 = "<leader>x";
+              group = "Close buffer";
+            }
+            {
+              __unkeyed-1 = "<leader>z";
+              group = "Scroll/Cursor";
+            }
             # Neovim 0.10+ 原生注释：gcc / gc{motion} / gcap / gcgc
-            { __unkeyed-1 = "gc"; group = "Comment"; mode = [ "n" "x" ]; }
+            {
+              __unkeyed-1 = "gc";
+              group = "Comment";
+              mode = [
+                "n"
+                "x"
+              ];
+            }
           ];
           # 单独的 d / y 触发 which-key 弹出 operator / motion help
           triggers = [
             "<auto>"
-            { __unkeyed-1 = "d"; mode = "n"; }
-            { __unkeyed-1 = "y"; mode = "n"; }
+            {
+              __unkeyed-1 = "d";
+              mode = "n";
+            }
+            {
+              __unkeyed-1 = "y";
+              mode = "n";
+            }
           ];
         };
       };
@@ -58,7 +116,9 @@
           close_if_last_window = false;
           popup_border_style = "rounded";
           filesystem = {
-            follow_current_file = { enabled = true; };
+            follow_current_file = {
+              enabled = true;
+            };
             hijack_netrw_behavior = "disabled";
             use_libuv_file_watcher = true;
             filtered_items = {
@@ -91,7 +151,7 @@
               "AgenticFiles"
               "AgenticDiagnostics"
               "AgenticTodos"
-          ];
+            ];
             disabled_filetypes.winbar = [
               "AgenticChat"
               "AgenticInput"
@@ -105,20 +165,36 @@
             lualine_a = [ "mode" ];
             lualine_b = [ "branch" ];
             lualine_c = [
-              { name = "filename"; path = 1; }
+              {
+                name = "filename";
+                path = 1;
+              }
               {
                 name = "diagnostics";
-                sections = [ "error" "warn" ];
-                symbols = { error = "E:"; warn = "W:"; };
+                sections = [
+                  "error"
+                  "warn"
+                ];
+                symbols = {
+                  error = "E:";
+                  warn = "W:";
+                };
                 diagnostics_color = {
-                  error = { fg = "#ef6f83"; };
-                  warn = { fg = "#d9a95e"; };
+                  error = {
+                    fg = "#ef6f83";
+                  };
+                  warn = {
+                    fg = "#d9a95e";
+                  };
                 };
                 always_visible = true;
                 update_in_insert = true;
               }
             ];
-            lualine_x = [ "encoding" "filetype" ];
+            lualine_x = [
+              "encoding"
+              "filetype"
+            ];
             lualine_y = [ "progress" ];
             lualine_z = [ "location" ];
           };

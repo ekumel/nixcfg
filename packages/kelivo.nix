@@ -36,7 +36,13 @@
 }:
 
 let
-  inherit (pkgs) lib stdenv buildFHSEnv makeDesktopItem imagemagick;
+  inherit (pkgs)
+    lib
+    stdenv
+    buildFHSEnv
+    makeDesktopItem
+    imagemagick
+    ;
 
   # flake.inputs.X 在 flake = false 时是 store path 字符串（prefetch 后的
   # 单文件或 tarball 解包目录），可直接当 src 用。
@@ -70,7 +76,10 @@ let
       description = "Flutter LLM chat client (pre-built binary)";
       homepage = "https://kelivo.psycheas.top/";
       license = lib.licenses.agpl3Plus;
-      platforms = [ "x86_64-linux" "aarch64-linux" ];
+      platforms = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
     };
   };
 
@@ -116,7 +125,11 @@ let
     exec = "kelivo %U";
     terminal = false;
     type = "Application";
-    categories = [ "Network" "Chat" "Utility" ];
+    categories = [
+      "Network"
+      "Chat"
+      "Utility"
+    ];
     startupWMClass = "kelivo";
   };
 in

@@ -67,7 +67,10 @@
       {
         event = "FileType";
         group = "NvimConfig";
-        pattern = [ "lua" "rust" ];
+        pattern = [
+          "lua"
+          "rust"
+        ];
         callback = {
           __raw = ''
             function()

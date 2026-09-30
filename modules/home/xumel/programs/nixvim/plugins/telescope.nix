@@ -13,7 +13,9 @@
           prompt_prefix = " ";
           sorting_strategy = "ascending";
           layout_config.horizontal.prompt_position = "top";
-          path_display = { shorten = true; };
+          path_display = {
+            shorten = true;
+          };
           mappings.i = {
             "<C-j>" = "move_selection_next";
             "<C-k>" = "move_selection_previous";

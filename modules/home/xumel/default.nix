@@ -14,6 +14,7 @@
     ./programs/helix.nix
     ./programs/hyprland.nix
     ./programs/input-method.nix
+    ./programs/kdeconnect.nix
     ./programs/matugen
     ./programs/nixvim
     ./programs/qt.nix

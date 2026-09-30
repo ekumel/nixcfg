@@ -8,8 +8,12 @@
       settings = {
         keys = "asdghklqwertyuiopzxcvbnm";
         term_seq_esc = "jj";
-        highlight_hl = { fg = "String"; };
-        highlight_current_hl = { fg = "IncSearch"; };
+        highlight_hl = {
+          fg = "String";
+        };
+        highlight_current_hl = {
+          fg = "IncSearch";
+        };
       };
     };
   };

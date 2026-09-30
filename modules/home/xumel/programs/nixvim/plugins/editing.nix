@@ -13,11 +13,20 @@
         settings = {
           check_ts = true;
           ts_config = {
-            lua = [ "string" "source" ];
-            rust = [ "string" "source" ];
+            lua = [
+              "string"
+              "source"
+            ];
+            rust = [
+              "string"
+              "source"
+            ];
             python = [ "string" ];
           };
-          disable_filetype = [ "TelescopePrompt" "vim" ];
+          disable_filetype = [
+            "TelescopePrompt"
+            "vim"
+          ];
         };
       };
 

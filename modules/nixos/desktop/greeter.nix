@@ -47,7 +47,6 @@
     #   '';
     # };
 
-
     # Sync your user's DankMaterialShell theme with the greeter. You'll probably want this
     configHome = "/home/xumel";
 
@@ -63,7 +62,6 @@
     };
   };
 
-
   # 承载登录器的 Hyprland / wlroots 需要访问 DRM 设备。
   # greeter 是 greetd 使用的系统服务账户：必须显式声明为系统用户并指定所属组。
   users.users.greeter = {
@@ -74,5 +72,5 @@
       "render"
     ];
   };
-  users.groups.greeter = {};
+  users.groups.greeter = { };
 }

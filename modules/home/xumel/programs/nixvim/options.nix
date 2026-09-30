@@ -66,7 +66,11 @@
 
     # 补全菜单更顺手
     pumheight = 12;
-    completeopt = [ "menu" "menuone" "noselect" ];
+    completeopt = [
+      "menu"
+      "menuone"
+      "noselect"
+    ];
 
     # 真全局状态行（lualine globalstatus = true），避免每个窗口叠一行状态栏
     laststatus = 3;

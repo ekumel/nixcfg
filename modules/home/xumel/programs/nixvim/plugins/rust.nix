@@ -16,7 +16,9 @@
     lsp.servers.rust-analyzer = {
       enable = true;
       config = {
-        cargo = { allFeatures = true; };
+        cargo = {
+          allFeatures = true;
+        };
         # 保存时跑 clippy（默认是 check）；走 LSP 提供的 folding 替换 treesitter
         check = {
           command = "clippy";

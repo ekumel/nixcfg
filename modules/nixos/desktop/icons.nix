@@ -5,7 +5,12 @@
 #     发布 XCursor 格式，Hyprland 在找不到 hyprcursor 时自动回退到 XCursor。
 #   - dconf 设置统一在 gtk.nix 里：这里只安装包，避免把一份 user profile
 #     数据库拆成多个定义。
-{ pkgs, flake, lib, ... }:
+{
+  pkgs,
+  flake,
+  lib,
+  ...
+}:
 
 let
   # 第三方源统一通过 flake inputs 跟踪（见 flake.nix）。

@@ -17,10 +17,26 @@
           ""
         ];
         center = [
-          { desc = "Find files";   action = "Telescope find_files"; key = "f"; }
-          { desc = "Recent files"; action = "Telescope oldfiles";   key = "r"; }
-          { desc = "Live grep";    action = "Telescope live_grep";  key = "g"; }
-          { desc = "Toggle file tree"; action = "Neotree toggle";  key = "e"; }
+          {
+            desc = "Find files";
+            action = "Telescope find_files";
+            key = "f";
+          }
+          {
+            desc = "Recent files";
+            action = "Telescope oldfiles";
+            key = "r";
+          }
+          {
+            desc = "Live grep";
+            action = "Telescope live_grep";
+            key = "g";
+          }
+          {
+            desc = "Toggle file tree";
+            action = "Neotree toggle";
+            key = "e";
+          }
         ];
         footer = [
           ""
@@ -62,9 +78,30 @@
         popupmenu.enabled = true;
         # 过滤掉烦人的 "written" / "yanked" / "recorded" 提示
         routes = [
-          { filter = { event = "msg_show"; kind = ""; find = "written"; }; opts.skip = true; }
-          { filter = { event = "msg_show"; kind = ""; find = "yanked";  }; opts.skip = true; }
-          { filter = { event = "msg_show"; kind = ""; find = "recorded"; }; opts.skip = true; }
+          {
+            filter = {
+              event = "msg_show";
+              kind = "";
+              find = "written";
+            };
+            opts.skip = true;
+          }
+          {
+            filter = {
+              event = "msg_show";
+              kind = "";
+              find = "yanked";
+            };
+            opts.skip = true;
+          }
+          {
+            filter = {
+              event = "msg_show";
+              kind = "";
+              find = "recorded";
+            };
+            opts.skip = true;
+          }
         ];
       };
     };

@@ -30,7 +30,12 @@
 #   - 只映射 DMS gtk3-light / gtk3-dark 两套模板都保证存在的语义名
 #     （accent_/window_/view_/headerbar_/card_）；error/success/warning 保持
 #     Breeze 语义色。这样不会因某个模板缺名而让 GTK 解析失败丢弃整张表。
-{ pkgs, flake, lib, ... }:
+{
+  pkgs,
+  flake,
+  lib,
+  ...
+}:
 let
   # 第三方源统一通过 flake inputs 跟踪（见 flake.nix）。
   # `flake.inputs.<name>` 在 `flake = false` 时是 store path 字符串（prefetch
@@ -140,10 +145,9 @@ let
   # 包裹的自适应色（那些行以 @media 开头，且引用改写后的 _breeze）。
   paletteSed = pkgs.writeText "darkly-dms-palette.sed" (
     lib.concatStringsSep "\n" (
-      lib.mapAttrsToList
-        (name: value:
-          "s|^@define-color ${name}_breeze [^;]*;|@define-color ${name}_breeze ${value};|")
-        breezeToDms
+      lib.mapAttrsToList (
+        name: value: "s|^@define-color ${name}_breeze [^;]*;|@define-color ${name}_breeze ${value};|"
+      ) breezeToDms
     )
   );
 
@@ -169,7 +173,10 @@ let
 
     src = flake.inputs.darkly-gtk;
 
-    nativeBuildInputs = [ pkgs.sassc pkgs.gnused ];
+    nativeBuildInputs = [
+      pkgs.sassc
+      pkgs.gnused
+    ];
 
     dontConfigure = true;
     dontBuild = true;
@@ -273,6 +280,5 @@ in
       };
     }
   ];
-  environment.sessionVariables.GSETTINGS_SCHEMA_DIR =
-    "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
+  environment.sessionVariables.GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
 }

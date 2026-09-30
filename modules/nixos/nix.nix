@@ -4,7 +4,10 @@
 {
   nix.settings = {
     # 常用实验特性：flake 与新版 nix 命令。
-    experimental-features = [ "nix-command" "flakes" ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
 
     auto-optimise-store = true;
 

@@ -10,7 +10,7 @@
   boot.loader.limine.maxGenerations = 3;
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
-    # 2. 设置启动菜单超时时间为 5 秒
+  # 2. 设置启动菜单超时时间为 5 秒
   boot.loader.timeout = 15;
 
   # 3. Limine 的详细配置
@@ -35,4 +35,3 @@
     '';
   };
 }
-

@@ -1,0 +1,6 @@
+{
+    "pendant.showThinking": true,
+    "pendant.thinkingDisplayMode": "collapseWhenDone",
+    "pendant.autoGenerateSessionNames": true,
+    "pendant.sessionNameGeneration": {}
+}

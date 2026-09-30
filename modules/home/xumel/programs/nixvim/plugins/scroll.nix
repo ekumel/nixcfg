@@ -7,7 +7,19 @@
     plugins.neoscroll = {
       enable = true;
       settings = {
-        mappings = [ "<C-u>" "<C-d>" "<C-b>" "<C-f>" "<C-y>" "<C-e>" "zt" "zz" "zb" "G" "gg" ];
+        mappings = [
+          "<C-u>"
+          "<C-d>"
+          "<C-b>"
+          "<C-f>"
+          "<C-y>"
+          "<C-e>"
+          "zt"
+          "zz"
+          "zb"
+          "G"
+          "gg"
+        ];
         hide_cursor = true;
         stop_eof = true;
         respect_scrolloff = false;

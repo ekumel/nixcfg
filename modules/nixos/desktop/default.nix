@@ -33,8 +33,8 @@
     GTK_THEME = "Darkly";
   };
 
-# 桌面会话依赖的服务：电源/亮度信息、性能配置、蓝牙（无 shell 时也保留，
-# 供设置面板与硬件按键使用）。
+  # 桌面会话依赖的服务：电源/亮度信息、性能配置、蓝牙（无 shell 时也保留，
+  # 供设置面板与硬件按键使用）。
   services.upower.enable = true;
   services.power-profiles-daemon.enable = true;
   # udisks2 守护进程 + udisksctl CLI，给 yazi 等应用挂载/卸载 U 盘、外设块设备。

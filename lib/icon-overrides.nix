@@ -41,21 +41,25 @@
 #   imageRender   <image> 的 image-rendering 属性。默认 "optimizeQuality"
 #                 （缩放时高质量插值，减少锯齿）。其他可选：
 #                 "auto" / "optimizeSpeed" / "crisp-edges"。
-{ pkgs, lib
-, pname
-, pkg ? pkgs.${pname}
-, bg ? "#ffffff"
-, cornerRadius ? 96
-, scale ? 0.75
-, viewBox ? 512
-, border ? 32
-, imageRender ? "optimizeQuality"
+{
+  pkgs,
+  lib,
+  pname,
+  pkg ? pkgs.${pname},
+  bg ? "#ffffff",
+  cornerRadius ? 96,
+  scale ? 0.75,
+  viewBox ? 512,
+  border ? 32,
+  imageRender ? "optimizeQuality",
 }:
 
-assert lib.assertMsg (scale > 0 && scale <= 1)
-  "icon-overrides: scale must be in (0, 1], got ${toString scale}";
-assert lib.assertMsg (border >= 0 && border < viewBox / 2)
-  "icon-overrides: border must be in [0, ${toString (viewBox / 2)}), got ${toString border}";
+assert lib.assertMsg (
+  scale > 0 && scale <= 1
+) "icon-overrides: scale must be in (0, 1], got ${toString scale}";
+assert lib.assertMsg (
+  border >= 0 && border < viewBox / 2
+) "icon-overrides: border must be in [0, ${toString (viewBox / 2)}), got ${toString border}";
 
 let
   # 内层有色的边长（viewBox 减去两侧 border）
@@ -72,11 +76,16 @@ let
 
   # background 节点：bg == "transparent" 时省略内层 rect
   # border > 0 时，外圈 fill="none" 让 dock 底色透出；border == 0 时不画外层。
-  innerRect = if bg == "transparent" then "" else
-    "  <rect x=\"${toString border}\" y=\"${toString border}\" width=\"${toString inner}\" height=\"${toString inner}\" rx=\"${toString innerRadius}\" ry=\"${toString innerRadius}\" fill=\"${bg}\"/>\n";
-  outerRect = if border > 0 then
-    "  <rect width=\"${toString viewBox}\" height=\"${toString viewBox}\" rx=\"${toString cornerRadius}\" ry=\"${toString cornerRadius}\" fill=\"none\"/>\n"
-    else "";
+  innerRect =
+    if bg == "transparent" then
+      ""
+    else
+      "  <rect x=\"${toString border}\" y=\"${toString border}\" width=\"${toString inner}\" height=\"${toString inner}\" rx=\"${toString innerRadius}\" ry=\"${toString innerRadius}\" fill=\"${bg}\"/>\n";
+  outerRect =
+    if border > 0 then
+      "  <rect width=\"${toString viewBox}\" height=\"${toString viewBox}\" rx=\"${toString cornerRadius}\" ry=\"${toString cornerRadius}\" fill=\"none\"/>\n"
+    else
+      "";
 in
 pkg.overrideAttrs (old: {
   postInstall = (old.postInstall or "") + ''

@@ -19,8 +19,12 @@
           enable = true;
           config = {
             Lua = {
-              runtime = { version = "LuaJIT"; };
-              diagnostics = { globals = [ "vim" ]; };
+              runtime = {
+                version = "LuaJIT";
+              };
+              diagnostics = {
+                globals = [ "vim" ];
+              };
               workspace.checkThirdParty = false;
               telemetry.enable = false;
             };
@@ -30,7 +34,9 @@
         pyright = {
           enable = true;
           config = {
-            pyright = { disableTaggedHints = true; };
+            pyright = {
+              disableTaggedHints = true;
+            };
             python = {
               analysis = {
                 autoSearchPaths = true;
