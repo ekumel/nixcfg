@@ -124,10 +124,14 @@ buildFHSEnv {
   ];
 
   # 直接调用解包后的 Electron 主二进制。.desktop 的 Exec 是
-  # `/opt/baidunetdisk/baidunetdisk --no-sandbox %U`——我们在 wrapper
-  # 里把 `--no-sandbox` 也带上，这样 .desktop 里 Exec=baidunetdisk
-  # 就行，不需要 wrapper 自动加 flags。
-  runScript = "${unpacked}/opt/baidunetdisk/baidunetdisk --no-sandbox";
+  # `/opt/baidunetdisk/baidunetdisk --no-sandbox %U`（上游 .desktop
+  # 自带 --no-sandbox flag）。但 baidunetdisk 主进程 shell wrapper
+  # 自己 arg-parses，**不接受** --no-sandbox（试过会报
+  # "bad option: --no-sandbox"）—— 与 orca 同款 Electron 应用同
+  # 样问题。所以这里**不**传 --no-sandbox，让 Chromium 内核
+  # 默认走 namespace sandbox（SUID-less fallback）；上游 .desktop
+  # 里的 flag 也没用，被 wrapper strip 掉。
+  runScript = "${unpacked}/opt/baidunetdisk/baidunetdisk";
 
   # 复制 deb 自带的 .desktop 与 hicolor 图标到 wrapper 的 $out/share/，
   # 并把 Exec= 里的绝对路径改成 wrapper 暴露的可执行名。
@@ -141,8 +145,8 @@ buildFHSEnv {
         "$out/share/applications/baidunetdisk.desktop"
       # Exec=/opt/baidunetdisk/baidunetdisk --no-sandbox %U
       # →   Exec=baidunetdisk %U
-      # 上游 Exec 已带 --no-sandbox；runScript 也已透传此 flag，
-      # 所以这里直接去掉绝对路径即可，不重复加 flag。
+      # 把上游 Exec 里的绝对路径 + --no-sandbox 一起 strip（见上方
+      # runScript 注释：Electron 应用主进程不接受 --no-sandbox）。
       substituteInPlace "$out/share/applications/baidunetdisk.desktop" \
         --replace-fail "/opt/baidunetdisk/baidunetdisk --no-sandbox" "baidunetdisk"
     fi

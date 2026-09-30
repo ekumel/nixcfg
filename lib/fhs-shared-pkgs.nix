@@ -1,11 +1,11 @@
-# fhs-shared-pkgs.nix：被 zedg.nix / kelivo.nix / monocode.nix 共用的
+# fhs-shared-pkgs.nix：被 zedg.nix / kelivo.nix / orca.nix 共用的
 # targetPkgs 列表。
 #
 # 为什么需要这份独立文件：
 #   buildFHSEnv 只把列表里每个包自身的 out/lib/bin 输出合到 rootfs 的
 #   /usr/lib64，不递归传播 propagatedBuildInputs（与 upstream 的
 #   zed-editor-fhs 不同：那里底层是 rust 包，构建依赖自动进 rootfs）。
-#   zedg / kelivo / monocode 都是预编译的二进制 tarball / .deb，
+#   zedg / kelivo / orca 都是预编译的二进制 tarball / .deb，
 #   没有任何 Nix 级 buildInputs，所以必须把所有运行时库显式列出来。
 #
 # 三部分组成：
@@ -14,19 +14,11 @@
 #   2. kelivo 额外的依赖：Flutter app 在 tarball 里用了一堆插件
 #      （tray_manager / window_manager / bitsdojo / audioplayers 等），
 #      这些插件 NEEDED libayatana-appindicator3 / libdbusmenu-glib /
-#      libkeybinder-3 / libgstreamer-1.0 等。这些库 zedg / monocode
+#      libkeybinder-3 / libgstreamer-1.0 等。这些库 zedg / orca
 #      不需要但列在这里也不影响（只是一点 rootfs 体积代价）。
-#   3. monocode 额外的依赖：Tauri 2.x 应用需要系统 WebView 后端
-#      （webkit2gtk-4.1 + libsoup-3.0 + libjavascriptcoregtk-4.1）。
-#      这三个在 closeSize 上要 ~250 MB，是这份共享包的最大块头，
-#      但 zedg（Zed 自己的 webview 走 GPU compositor 不走 webkit2gtk）
-#      与 kelivo（Flutter 自绘）都不需要，因此添加时权衡是：
-#         - 加进来：所有 GUI 包都拖一份 webkit，closure 共担；
-#         - 不加：monocode 单独再开一份 fhs-shared-pkgs-monocode.nix，
-#                失去「改一处全跟随」的好处，且未来再加 Tauri 包
-#                都要再列一遍。
-#      当前选择前者，未来如再要追加 Tauri 应用（zode / lance / 
-#  similar)，零增量即可复用。
+#   3. orca 额外的依赖：Electron 二进制 NEEDED libcups.so.2（打印 /
+#      认证），nixpkgs cupswrapper（libcups）补上。其它 GTK / GL /
+#      NSS / drm / systemd 等都已在本文件前半段覆盖。
 #
 # 如何检查依赖是否遗漏：
 #   启动包后看是否报 “error while loading shared libraries”，
@@ -77,7 +69,7 @@ with pkgs;
   dbus
 
   # 以下为 kelivo tarball 中 Flutter plugins 的间接依赖；
-  # zedg 不需要它们。列在末尾以便未来再加 zedg 依赖时可以
+  # zedg / orca 不需要它们。列在末尾以便未来再加 zedg 依赖时可以
   # 在这里独立分组。
   libayatana-appindicator # libtray_manager_plugin 间接依赖（ayatana 系列）
   libayatana-indicator # libayatana-appindicator 间接依赖 libayatana-indicator3.so.7
@@ -88,14 +80,23 @@ with pkgs;
   gst_all_1.gstreamer # libaudioplayers_linux_plugin 间接依赖
   gst_all_1.gst-plugins-base # libgstapp / libgstbase
 
-  # 以下为 monocode（Tauri 2.x 桌面 GUI）二进制硬编码 NEEDED：
-  #   ldd 报告 not found：libgdk-3.so.0 / libgtk-3.so.0 由 gtk3
-  #   已覆盖，gdk-pixbuf 上述已覆盖。剩下 libwebkit2gtk-4.1.so.0 +
-  #   libjavascriptcoregtk-4.1.so.0 来自 webkitgtk_4_1 单包，
-  #   libsoup-3.0.so.0 来自 libsoup_3。命名注意：nixpkgs 把这两个
-  #   都按 gtk-N_M 风格命名（webkitgtk_4_1 而不是 webkit2gtk_4_1）。
-  # monocode 的 README 也明确列出 libwebkit2gtk-4.1-dev /
-  # libsoup-3.0-dev / libjavascriptcoregtk-4.1-dev 是 Linux Tauri 前提。
-  webkitgtk_4_1 # libwebkit2gtk-4.1.so.0 / libjavascriptcoregtk-4.1.so.0
-  libsoup_3 # libsoup-3.0.so.0
+  # 以下为 orca（Electron 应用）二进制硬编码 NEEDED：
+  #   cups（libcups.so.2）—— Chromium 打印 / 认证子系统的客户端。
+  #   libxcomposite / libxdamage / libXtst / libxinerama / libxext ——
+  #     Chromium 合成 X 事件 / 模拟 / 触摸输入必需。
+  #     2026-09 删 monocode 用的 webkitgtk_4_1 后，这些 X 库
+  #     不再由共享包间接带入；Electron / Chromium 必需，需要独立列。
+  #     libxext 本应在 libxcb 的 transitive 里，但 fhs-shared 的 libxcb
+  #     不传导 libxext.so.6（libxext 与 libxcb 是平行的 nixpkgs 包），
+  #     所以也独立列。
+  #   其它 GTK / GL / NSS / drm / systemd / X11 / Xrandr / Xfixes / Xcursor
+  #   / Xi / xkbcommon 等都已在本文件前半段覆盖。
+  cups
+  libxcomposite
+  libxdamage
+  libXtst
+  libxinerama
+  libxext
+  libgbm # libgbm.so.1 —— Chromium GPU buffer manager。mesa 不传导
+  # libgbm，Electron / Chromium 必需独立列。
 ]

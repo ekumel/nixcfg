@@ -21,6 +21,7 @@
     flake.modules.nixos.input-method
     flake.modules.nixos.virtualisation
     flake.modules.nixos.gaming
+    flake.modules.nixos.user-secrets
     flake.modules.nixos.nix-github-auth
     flake.modules.nixos.desktop
     flake.modules.nixos.packages

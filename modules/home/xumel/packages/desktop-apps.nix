@@ -11,7 +11,6 @@
     kdePackages.kget
     kdePackages.kdeconnect-kde # KDE Connect（手机与电脑互联）
     scrcpy # Android 投屏
-    qtscrcpy # QtScrcpy（带 GUI 的 Android 投屏）
     qbittorrent
     haruna
     fooyin

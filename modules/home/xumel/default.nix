@@ -17,6 +17,7 @@
     ./programs/kdeconnect.nix
     ./programs/matugen
     ./programs/nixvim
+    ./programs/pi-agent.nix
     ./programs/qt.nix
     ./programs/xsettingsd.nix
 

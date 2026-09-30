@@ -18,7 +18,8 @@
     perSystem.self.goquark # GoQuark：夸克网盘 CLI / TUI / MCP（单文件 Go 静态二进制）
     perSystem.self.baidunetdisk # 百度网盘 Linux 客户端（unfree，官方 .deb，FHS 封装）
     perSystem.self.mcode # MiniMax Code：终端编码代理 CLI（npm @minimax-ai/code）
-    perSystem.self.monocode # MonoCode：多 coding agent 统一桌面 GUI（Tauri 2 .deb，FHS 封装）
+    perSystem.self.pi-agent # pi：开源 coding agent CLI（npm @earendil-works/pi-coding-agent）
+    perSystem.self.orca # Orca：AI 编排器（Electron，GitHub release .deb，FHS 封装）
   ]
   # Zed 配套 LSP：集中在 lib/zed-lsp.nix，避免散落到别处后被遗忘。
   ++ (pkgs.callPackage ../../../../lib/zed-lsp.nix { });

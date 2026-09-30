@@ -13,4 +13,9 @@ let
 in
 {
   "github-netrc.age".publicKeys = [ xumel ];
+  # pi coding agent 的 API key 凭据。
+  # 明文内容：~/.pi/agent/auth.json（pi 期望的 JSON 结构：每个 provider 一项）。
+  # 解密到 /run/agenix/pi-agent-auth，由 home-manager 软链到 ~/.pi/agent/auth.json
+  # （modules/home/xumel/programs/pi-agent.nix）。
+  "pi-agent-auth.age".publicKeys = [ xumel ];
 }

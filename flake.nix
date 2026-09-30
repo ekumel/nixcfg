@@ -140,14 +140,14 @@
       flake = false;
     };
 
-    # monocode：hardbeat920/monocode 的 GitHub Release .deb（Linux x86_64）。
-    # 打包策略与 baidunetdisk 同款（.deb 解包 + buildFHSEnv 封装），
-    # 详细见 packages/monocode.nix 顶部注释。.deb 命名规律
-    # `MonoCode_<version>_amd64.deb`，version 与 src URL 字面量写在本
-    # input 的 url 字段；update-third-party.sh monocode 探测流程同
-    # baidunetdisk（手动版）或将来实现 updater_monocode 自动化版。
-    monocode = {
-      url = "https://github.com/hardbeat920/monocode/releases/download/v0.5.0/MonoCode_0.5.0_amd64.deb";
+    # pi-agent：@earendil-works/pi-coding-agent — Mario Zechner 的开源
+    # coding agent CLI（npm registry 发布的预打包 tarball，bin: pi →
+    # dist/bundle/cli.js）。与 mcode 同款（npm CLI，buildNpmPackage）。
+    # 升级跑 `./scripts/update-third-party.sh pi-agent`：脚本探测 npm
+    # registry dist-tags.latest、取 tarball URL、改 flake.nix 的 url
+    # 字段、`nix flake lock --update-input pi-agent` 重锁。
+    pi-agent = {
+      url = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.99.1.tgz";
       flake = false;
     };
 
@@ -162,6 +162,20 @@
     # 一次性同步更新（详细见 packages/mcode.nix 顶部注释）。
     mcode = {
       url = "https://registry.npmjs.org/@minimax-ai/code/-/code-0.5.9.tgz";
+      flake = false;
+    };
+
+    # orca：stablyai/orca 的 GitHub Release .deb（Linux x86_64）。
+    # 打包策略与 baidunetdisk 同款（.deb 解包 + buildFHSEnv 封装），
+    # 详细见 packages/orca.nix 顶部注释。.deb 命名规律
+    # `orca-ide_<version>_amd64.deb`（latest-linux.yml 里列出，
+    # version 与 src URL 字面量写在本 input 的 url 字段）。
+    # 升级跑 `./scripts/update-third-party.sh orca`：脚本从
+    # latest-linux.yml 拿 version + .deb URL + sha512（与 electron-
+    # builder 发布的 standard 行为），改 flake.nix 的 url 字段 +
+    # `nix flake lock --update-input orca` 重锁。
+    orca = {
+      url = "https://github.com/stablyai/orca/releases/download/v1.4.217/orca-ide_1.4.217_amd64.deb";
       flake = false;
     };
   };

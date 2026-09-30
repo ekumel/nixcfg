@@ -288,6 +288,127 @@ updater_mcode() {
   RESULTS+=("mcode"$'\t'"${tarball_url}"$'\t'"${version}")
 }
 
+# pi-agent：npm registry API，与 mcode 同款（同一类 npm CLI tarball，
+# 同一类 buildNpmPackage）。区别只在包名、lockfile 路径、nix 文件名：
+#   - 包名：@earendil-works/pi-coding-agent
+#   - tarball URL 模板：https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-<ver>.tgz
+#   - lockfile 路径：packages/pi-agent-package-lock.json
+#   - nix 文件：packages/pi-agent.nix
+# 复用 mcode 的 retry 策略：npm registry 偶尔 Empty reply / SSL EOF。
+updater_pi_agent() {
+  local pkg_json version tarball_url npm_deps_hash tmp pkg_root
+
+  for attempt in 1 2 3; do
+    pkg_json=$(curl "${CURL_BASE[@]}" "https://registry.npmjs.org/@earendil-works/pi-coding-agent") && [ -n "$pkg_json" ] && break
+    echo "pi-agent: npm registry API 探测失败（重试 $attempt/3）" >&2
+    sleep $((attempt * 1))
+  done
+  [ -n "$pkg_json" ] || { echo "npm registry 返回空" >&2; return 1; }
+  version=$(printf '%s' "$pkg_json" | jq -r '.["dist-tags"].latest // empty')
+  [ -n "$version" ] || { echo "npm registry 无 dist-tags.latest" >&2; return 1; }
+  tarball_url=$(printf '%s' "$pkg_json" | jq -r ".versions.\"${version}\".dist.tarball // empty")
+  [ -n "$tarball_url" ] || { echo "npm registry 无 tarball for ${version}" >&2; return 1; }
+
+  tmp=$(mktemp -d)
+  pkg_root="$tmp/package"
+  for attempt in 1 2 3; do
+    if curl -fsSL -o "$tmp/pi-agent.tgz" "$tarball_url"; then
+      break
+    fi
+    echo "pi-agent: 下载 tarball 失败（重试 $attempt/3）: $tarball_url" >&2
+    sleep $((attempt * 1))
+  done
+  if [ ! -s "$tmp/pi-agent.tgz" ]; then
+    echo "下载 npm tarball 失败: $tarball_url" >&2
+    rm -rf "$tmp"; return 1
+  fi
+  if ! tar -xzf "$tmp/pi-agent.tgz" -C "$tmp"; then
+    echo "解 tarball 失败" >&2
+    rm -rf "$tmp"; return 1
+  fi
+
+  # 跟 mcode 同款：tarball 自带 npm-shrinkwrap.json 但缺 integrity
+  # （npm 11+ 在 workspace 风格下会省略 @earendil-works/* 子包的
+  # integrity，prefetch-npm-deps 拒绝），所以跑
+  # npm install --package-lock-only 把每个 dep 的 integrity 补齐。
+  # 注意：保留 tarball 里的 npm-shrinkwrap.json（不删），npm 看到
+  # 两者并存会优先用 shrinkwrap 但同时生成 package-lock.json 副本。
+  export PKG_ROOT="$pkg_root"
+  if ! nix-shell -p nodejs_24 --run '
+    set -e
+    cd "$PKG_ROOT"
+    npm install --package-lock-only --omit=dev --ignore-scripts \
+      --registry=https://registry.npmjs.org/ >/dev/null
+  ' >/dev/null 2>&1; then
+    echo "npm install --package-lock-only 失败（网络问题？试试重跑）" >&2
+    rm -rf "$tmp"; return 1
+  fi
+  cp "$pkg_root/package-lock.json" "$SCRIPT_DIR/../packages/pi-agent-package-lock.json"
+
+  local deps_out="$tmp/deps"
+  export LOCKFILE="$pkg_root/package-lock.json"
+  export DEPS_OUT="$deps_out"
+  for attempt in 1 2 3; do
+    rm -rf "$deps_out"
+    if nix-shell -p prefetch-npm-deps --run '
+      prefetch-npm-deps "$LOCKFILE" "$DEPS_OUT"
+    ' >/dev/null 2>&1; then
+      break
+    fi
+    echo "pi-agent: prefetch-npm-deps 失败（重试 $attempt/3）" >&2
+    sleep $((attempt * 1))
+  done
+  if [ ! -d "$deps_out/_cacache" ]; then
+    echo "prefetch-npm-deps 失败（某个 npm 镜像拉不到？重试）" >&2
+    rm -rf "$tmp"; return 1
+  fi
+  npm_deps_hash=$(cd / && "${NIX[@]}" hash path --type sha256 --base64 "$deps_out")
+  rm -rf "$tmp"
+  [ -n "$npm_deps_hash" ] || { echo "nix hash path 返回空" >&2; return 1; }
+
+  perl -0777 -i -pe "s|(npmDepsHash = \")[^\"]*(\")|\$1sha256-${npm_deps_hash}\$2|" \
+    "$SCRIPT_DIR/../packages/pi-agent.nix"
+
+  RESULTS+=("pi-agent"$'\t'"${tarball_url}"$'\t'"${version}")
+}
+
+# orca：electron-builder 发布的 latest-linux.yml 元数据。
+#   不同于 GitHub Releases API，orca 用 electron-builder 的
+#   auto-update 协议——latest-linux.yml 是 YAML：
+#     version: 1.4.217
+#     files:
+#       - url: orca-ide_1.4.217_amd64.deb
+#         sha512: <base64 sha512>
+#         size: 180987924
+#   拿 version + .deb URL + sha512，拼出 absolute URL 写到 flake.nix。
+#   sha512 上游已算，flake.nix 的 lock 会从 narHash 反推 sha256
+#   （nix prefetch 内部用 sha256），所以这里不需要手动算——交给
+#   `nix flake lock --update-input orca` 重锁即可，narHash 会自动
+#   落进 flake.lock。
+updater_orca() {
+  local yml version file_url deb_sha512
+  yml=$(curl "${CURL_BASE[@]}" \
+    "https://github.com/stablyai/orca/releases/latest/download/latest-linux.yml")
+  [ -n "$yml" ] || { echo "orca: latest-linux.yml 下载空" >&2; return 1; }
+  version=$(printf '%s' "$yml" | awk '/^version:/{print $2; exit}')
+  [ -n "$version" ] || { echo "orca: latest-linux.yml 无 version 字段" >&2; return 1; }
+  # electron-builder YAML 用 2 空格缩进；用 awk 找 'url: ...amd64.deb' 行
+  file_url=$(printf '%s' "$yml" \
+    | awk '/^  - url:/{u=$3} /^    url:/{u=$3} END{print u}' \
+    | grep '_amd64\.deb$')
+  [ -n "$file_url" ] || file_url=$(printf '%s' "$yml" \
+    | awk '/^  - url:/{print $3}' | grep '_amd64\.deb$' | head -n1)
+  [ -n "$file_url" ] || { echo "orca: latest-linux.yml 无 amd64.deb 资产" >&2; return 1; }
+  # absolute URL：electron-builder 的 url 是相对路径，base 是 release tag URL
+  # 但我们只关心 version 字面量、URL 由 flake.nix + 重锁自动拼（升
+  # 级后 flake.lock 的 narHash 会刷）。所以这里只取 version，URL
+  # 写为模板可推的形式。但 template-only URL 会被 flake 当作不固定
+  # URL 锁不住；需要在 flake.nix 写 literal URL（带版本号）。
+  # 妥协：写 literal URL，由本 updater 拼绝对 URL 推进 RESULTS。
+  local abs_url="https://github.com/stablyai/orca/releases/download/v${version}/${file_url}"
+  RESULTS+=("orca"$'\t'"${abs_url}"$'\t'"${version}")
+}
+
 # dwproton：Forgejo (dawn.wine)，Gitea v1 API：
 #   /api/v1/repos/<owner>/<repo>/releases/latest
 # asset = dwproton-<ver>-x86_64.tar.xz；version 字面量保留完整 tag。
@@ -333,10 +454,12 @@ declare -A UPDATERS=(
   [prismlauncher-offline-account]=updater_prismlauncher_offline_account
   [kokovp]=updater_kokovp
   [mcode]=updater_mcode
+  [pi-agent]=updater_pi_agent
+  [orca]=updater_orca
 )
 
 if [ "$#" -eq 0 ]; then
-  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account kokovp mcode)
+  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account kokovp mcode pi-agent orca)
 else
   TARGETS=("$@")
 fi
@@ -400,6 +523,8 @@ for r in "${RESULTS[@]}"; do
     prismlauncher-offline-account)    file=packages/prismlauncher-offline-account.nix ;;
     kokovp)                   file=packages/kokovp.nix ;;
     mcode)             file=packages/mcode.nix ;;
+    pi-agent)           file=packages/pi-agent.nix ;;
+    orca)              file=packages/orca.nix ;;
   esac
   if [ -n "${file:-}" ]; then
     perl -i -0pe "s|^(\s*)version = \"[^\"]*\";|\$1version = \"${ver}\";|m" "$file"
