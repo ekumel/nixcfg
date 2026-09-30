@@ -772,6 +772,31 @@
         "url": "https://github.com/Chevey339/kelivo/releases/download/v1.2.6/Kelivo_linux_1.2.6%2B73.tar.gz"
       }
     },
+    "mcode": {
+      "flake": false,
+      "locked": {
+        "lastModified": 499162500,
+        "narHash": "sha256-EMB85f6vict+N9QOlnkz4QWMAR8BUllEtKZPVYJEMsc=",
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/@minimax-ai/code/-/code-0.5.9.tgz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/@minimax-ai/code/-/code-0.5.9.tgz"
+      }
+    },
+    "monocode": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-UXN51ND+CCpnOyDPEQjEIku6IGB+AP5+L5OsHmuYE7E=",
+        "type": "file",
+        "url": "https://github.com/hardbeat920/monocode/releases/download/v0.5.0/MonoCode_0.5.0_amd64.deb"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/hardbeat920/monocode/releases/download/v0.5.0/MonoCode_0.5.0_amd64.deb"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1789684949,
@@ -922,6 +947,8 @@
         "hyprland": "hyprland",
         "hyprland-scroll-overview": "hyprland-scroll-overview",
         "kelivo": "kelivo",
+        "mcode": "mcode",
+        "monocode": "monocode",
         "nixpkgs": "nixpkgs_2",
         "nixvim": "nixvim",
         "qtengine": "qtengine",

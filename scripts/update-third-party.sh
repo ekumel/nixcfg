@@ -3,7 +3,7 @@
 # 修改 packages/*.nix 的 version 字面量、`nix flake lock` 重锁。
 #
 # 用法：
-#   ./scripts/update-third-party.sh              # 全部 7 个 input 都更新
+#   ./scripts/update-third-party.sh              # 全部 9 个 input 都更新
 #   ./scripts/update-third-party.sh kelivo zedg  # 仅更新指定 input
 #   ./scripts/update-third-party.sh wechat       # 仅 wechat（URL 不变，只刷
 #                                                # narHash + version）
@@ -142,10 +142,40 @@ updater_bibata() {
 updater_goquark() {
   local out tag asset url version
   out=$(probe_github "ButterFuture/GoQuark" '^goquark_.+_linux_amd64$') || return 1
-  IFS=$'\t' read -r tag asset <<<"$out"
+  IFS=$'\t' read -r tag asset url <<<"$out"
   version="$tag"
   url="https://github.com/ButterFuture/GoQuark/releases/download/${tag}/${asset}"
   RESULTS+=("goquark"$'\t'"${url}"$'\t'"${version}")
+}
+
+# prismlauncher-offline-account：asset = PrismLauncher-Linux-Qt6-Portable-<version>.tar.gz
+# 上游同时还发 plain PrismLauncher-<version>.tar.gz（Qt5 老版）和
+# PrismLauncher-Linux-x86_64.AppImage——只挑 Qt6 portable tarball，
+# 因为它是 statically linked、unpack 即可，最贴合 Nix 打包模型。
+updater_prismlauncher_offline_account() {
+  local out tag asset url version
+  out=$(probe_github "forsyth47/PrismLauncher-OfflineAccount" \
+    '^PrismLauncher-Linux-Qt6-Portable-.+\.tar\.gz$') || return 1
+  IFS=$'\t' read -r tag asset <<<"$out"
+  # 上游 tag 形如 10.0.5-offline2（带 -offlineN 后缀），保持原样。
+  version="$tag"
+  url="https://github.com/forsyth47/PrismLauncher-OfflineAccount/releases/download/${tag}/${asset}"
+  RESULTS+=("prismlauncher-offline-account"$'\t'"${url}"$'\t'"${version}")
+}
+
+# kokovp：上游不发 release，但有 git tag（v1.0.0 / v1.1.0 / v1.2.0 / v1.2.1
+# 等）。我们直接从 GitHub tags API 拿最新 tag，按
+# `https://github.com/brainrom/kokovp/archive/refs/tags/<tag>.tar.gz` 拼 URL。
+updater_kokovp() {
+  local tags tag version url
+  tags=$(curl "${CURL_BASE[@]}" \
+    "https://api.github.com/repos/brainrom/kokovp/tags?per_page=1")
+  [ -n "$tags" ] || { echo "GitHub tags API 返回空" >&2; return 1; }
+  tag=$(printf '%s' "$tags" | jq -r '.[0].name // empty')
+  [ -n "$tag" ] || { echo "GitHub tags API 无 name" >&2; return 1; }
+  version="$tag"
+  url="https://github.com/brainrom/kokovp/archive/refs/tags/${tag}.tar.gz"
+  RESULTS+=("kokovp"$'\t'"${url}"$'\t'"${version}")
 }
 
 # baidunetdisk：上游 https://pan.baidu.com/download 是 SPA，HTML 模板里
@@ -154,6 +184,109 @@ updater_goquark() {
 # `LinuxGuanjia/<version>/baidunetdisk_<version>_amd64.deb` 模式构造 URL，
 # 改 flake.nix 的 baidunetdisk url + packages/baidunetdisk.nix 的 version
 # 字面量后跑 `nix flake lock --update-input baidunetdisk`。
+
+# mcode：npm registry API（不是 GitHub Releases）。
+#   - dist-tags.latest 拿最新 semver 版本号（无 v 前缀）；
+#   - versions[<ver>].dist.tarball 拿 tarball URL；
+#   - npm tarball 不带 package-lock.json，buildNpmPackage 的
+#     prefetch-npm-deps 会找不到锁文件；本 updater 会同时跑
+#     `npm install --package-lock-only` 重生 packages/mcode-package-lock.json，
+#     再用 prefetch-npm-deps + `nix hash path` 算出 npmDepsHash，
+#     直接 perl 写回 packages/mcode.nix。
+# 依赖 host 上有 nix-shell（提取 npm / prefetch-npm-deps）。
+# 把以上额外动作括在一个函数里：主流程照样处理 flake.nix url
+# 字段与 packages/mcode.nix version 字面量（idempotent），然后
+# 我们在主流程跑完后重新锁 mcode 即可。
+updater_mcode() {
+  local pkg_json version tarball_url npm_deps_hash tmp pkg_root
+
+  # npm registry 偶尔 Empty reply / SSL EOF（见 curl error 52 / 56），
+  # 这里给探测 API 与拉 tarball 各加 retry 3 次（指数退避 1/2/4s）。
+  # 这是把 npm 抓 npm registry 的常见 transient，与下方 prefetch 同源。
+  local attempt
+  for attempt in 1 2 3; do
+    pkg_json=$(curl "${CURL_BASE[@]}" "https://registry.npmjs.org/@minimax-ai/code") && [ -n "$pkg_json" ] && break
+    echo "mcode: npm registry API 探测失败（重试 $attempt/3）" >&2
+    sleep $((attempt * 1))
+  done
+  [ -n "$pkg_json" ] || { echo "npm registry 返回空" >&2; return 1; }
+  version=$(printf '%s' "$pkg_json" | jq -r '.["dist-tags"].latest // empty')
+  [ -n "$version" ] || { echo "npm registry 无 dist-tags.latest" >&2; return 1; }
+  tarball_url=$(printf '%s' "$pkg_json" | jq -r ".versions.\"${version}\".dist.tarball // empty")
+  [ -n "$tarball_url" ] || { echo "npm registry 无 tarball for ${version}" >&2; return 1; }
+
+  tmp=$(mktemp -d)
+  pkg_root="$tmp/package"
+  # 拉 tarball + 解压。npm tarball 解出来根目录是 package/。
+  for attempt in 1 2 3; do
+    if curl -fsSL -o "$tmp/mcode.tgz" "$tarball_url"; then
+      break
+    fi
+    echo "mcode: 下载 tarball 失败（重试 $attempt/3）: $tarball_url" >&2
+    sleep $((attempt * 1))
+  done
+  if [ ! -s "$tmp/mcode.tgz" ]; then
+    echo "下载 npm tarball 失败: $tarball_url" >&2
+    rm -rf "$tmp"; return 1
+  fi
+  if ! tar -xzf "$tmp/mcode.tgz" -C "$tmp"; then
+    echo "解 tarball 失败" >&2
+    rm -rf "$tmp"; return 1
+  fi
+
+  # 生成新 lockfile 并覆盖仓库里的 vendored 版本。
+  # --omit=dev / --ignore-scripts / --registry=public 与 packages/mcode.nix
+  # 的 buildNpmPackage 设置一致，避免 lockfile 锁住 devDependencies
+  # 或被 .npmrc 引入私有 registry 包。
+  # nix-shell --run 不接受位置参数（-- 后的所有东西都不是 command 的），
+  # 必须用 env var 传 pkg_root。
+  export PKG_ROOT="$pkg_root"
+  if ! nix-shell -p nodejs_24 --run '
+    set -e
+    cd "$PKG_ROOT"
+    npm install --package-lock-only --omit=dev --ignore-scripts \
+      --registry=https://registry.npmjs.org/ >/dev/null
+  ' >/dev/null 2>&1; then
+    echo "npm install --package-lock-only 失败（网络问题？试试重跑）" >&2
+    rm -rf "$tmp"; return 1
+  fi
+  cp "$pkg_root/package-lock.json" "$SCRIPT_DIR/../packages/mcode-package-lock.json"
+
+  # prefetch-npm-deps 抓所有 deps 到 outdir，nix hash path 算 hash
+  # （与 buildNpmPackage 内部 prefetch-npm-deps 走同一份货）。
+  # prefetch 也走 npm registry；同样 retry。同样用 env var 传参。
+  # 关键：retry 前先清空 deps_out，否则上次失败的 cacache 残留导致
+  # prefetch 自带 retry 跳过去，hash 与 buildNpmPackage 期望的不一致。
+  local deps_out="$tmp/deps"
+  export LOCKFILE="$pkg_root/package-lock.json"
+  export DEPS_OUT="$deps_out"
+  for attempt in 1 2 3; do
+    rm -rf "$deps_out"
+    if nix-shell -p prefetch-npm-deps --run '
+      prefetch-npm-deps "$LOCKFILE" "$DEPS_OUT"
+    ' >/dev/null 2>&1; then
+      break
+    fi
+    echo "mcode: prefetch-npm-deps 失败（重试 $attempt/3）" >&2
+    sleep $((attempt * 1))
+  done
+  if [ ! -d "$deps_out/_cacache" ]; then
+    echo "prefetch-npm-deps 失败（某个 npm 镜像拉不到？重试）" >&2
+    rm -rf "$tmp"; return 1
+  fi
+  # nix hash path 需要 cd 到 / 否则 path 解析问题。
+  npm_deps_hash=$(cd / && "${NIX[@]}" hash path --type sha256 --base64 "$deps_out")
+  rm -rf "$tmp"
+  [ -n "$npm_deps_hash" ] || { echo "nix hash path 返回空" >&2; return 1; }
+
+  # 把 npmDepsHash 写回 packages/mcode.nix（perl 锁定第一个匹配替换）。
+  # 这里的 placeholder 是字面量 `npmDepsHash = "<old>"`；为了不依赖
+  # 旧值，用 perl -0777 锁定到第一个匹配进行替换（一个 file 里只有一个）。
+  perl -0777 -i -pe "s|(npmDepsHash = \")[^\"]*(\")|\$1sha256-${npm_deps_hash}\$2|" \
+    "$SCRIPT_DIR/../packages/mcode.nix"
+
+  RESULTS+=("mcode"$'\t'"${tarball_url}"$'\t'"${version}")
+}
 
 # dwproton：Forgejo (dawn.wine)，Gitea v1 API：
 #   /api/v1/repos/<owner>/<repo>/releases/latest
@@ -197,10 +330,13 @@ declare -A UPDATERS=(
   [dwproton]=updater_dwproton
   [darkly-gtk]=updater_darkly_gtk
   [goquark]=updater_goquark
+  [prismlauncher-offline-account]=updater_prismlauncher_offline_account
+  [kokovp]=updater_kokovp
+  [mcode]=updater_mcode
 )
 
 if [ "$#" -eq 0 ]; then
-  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark)
+  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account kokovp mcode)
 else
   TARGETS=("$@")
 fi
@@ -238,10 +374,17 @@ declare -a CHANGED_INPUTS=()
 
 for r in "${RESULTS[@]}"; do
   IFS=$'\t' read -r name url ver <<<"$r"
-  # 改 flake.nix 的 url 字段（仅当 URL 有变化）
+  # 改 flake.nix 的 url 字段（仅当 URL 有变化）。
+  # perl 在 s/// 的 replacement 仍会解释 @xxx 为数组，导致 url 里的
+  # @scope 被吃空（如 @minimax-ai → /-ai/code/...）。改用环境变量
+  # 把 url 传给 perl，perl 端用 $ENV{...} 读取，避免 bash 把 @scope
+  # 插值；并用 \Q...\E 在正则部分锁住 url 字面量防 perl regex 元字符。
   if [ "$url" != "-" ]; then
-    perl -0777 -i -pe "s|(    ${name} = \{\n      url = )\"[^\"]*\"|\$1\"${url}\"|" \
-      flake.nix
+    UPDATE_URL="$url" UPDATE_NAME="$name" perl -0777 -i -pe '
+      my $u = $ENV{UPDATE_URL};
+      my $n = $ENV{UPDATE_NAME};
+      s|(    \Q$n\E = \{\n      url = )"[^\"]*"|$1"$u"|;
+    ' flake.nix
     CHANGED_INPUTS+=("$name")
   fi
   # 改对应 .nix 文件的 version 字面量
@@ -254,6 +397,9 @@ for r in "${RESULTS[@]}"; do
     dwproton)          file=packages/dwproton.nix ;;
     darkly-gtk)        file=modules/nixos/desktop/gtk.nix ;;
     goquark)           file=packages/goquark.nix ;;
+    prismlauncher-offline-account)    file=packages/prismlauncher-offline-account.nix ;;
+    kokovp)                   file=packages/kokovp.nix ;;
+    mcode)             file=packages/mcode.nix ;;
   esac
   if [ -n "${file:-}" ]; then
     perl -i -0pe "s|^(\s*)version = \"[^\"]*\";|\$1version = \"${ver}\";|m" "$file"

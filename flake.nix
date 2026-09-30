@@ -139,6 +139,31 @@
       url = "github:wrymt/darkly-gtk";
       flake = false;
     };
+
+    # monocode：hardbeat920/monocode 的 GitHub Release .deb（Linux x86_64）。
+    # 打包策略与 baidunetdisk 同款（.deb 解包 + buildFHSEnv 封装），
+    # 详细见 packages/monocode.nix 顶部注释。.deb 命名规律
+    # `MonoCode_<version>_amd64.deb`，version 与 src URL 字面量写在本
+    # input 的 url 字段；update-third-party.sh monocode 探测流程同
+    # baidunetdisk（手动版）或将来实现 updater_monocode 自动化版。
+    monocode = {
+      url = "https://github.com/hardbeat920/monocode/releases/download/v0.5.0/MonoCode_0.5.0_amd64.deb";
+      flake = false;
+    };
+
+    # mcode：MiniMax-AI 发布的 npm CLI tarball（@minimax-ai/code）。
+    # 与 monocode 不同，tarball 是 universal（不区分系统架构）：npm
+    # publish 时同一个 .tgz 同时支持 linux / darwin（native 模块
+    # better-sqlite3 通过 npm optionalDependencies + prebuild-install
+    # 选平台 binding）。
+    # 升级跑 `./scripts/update-third-party.sh mcode`：脚本从 npm
+    # registry dist-tags API 拿最新 version + tarball URL + shasum，
+    # 重生 lockfile，用 prefetch-npm-deps 算 npmDepsHash，三处字面量
+    # 一次性同步更新（详细见 packages/mcode.nix 顶部注释）。
+    mcode = {
+      url = "https://registry.npmjs.org/@minimax-ai/code/-/code-0.5.9.tgz";
+      flake = false;
+    };
   };
 
   # outputs 由 blueprint 按目录约定生成：
