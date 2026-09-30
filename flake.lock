@@ -785,18 +785,6 @@
         "url": "https://registry.npmjs.org/@minimax-ai/code/-/code-0.5.9.tgz"
       }
     },
-    "monocode": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-UXN51ND+CCpnOyDPEQjEIku6IGB+AP5+L5OsHmuYE7E=",
-        "type": "file",
-        "url": "https://github.com/hardbeat920/monocode/releases/download/v0.5.0/MonoCode_0.5.0_amd64.deb"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://github.com/hardbeat920/monocode/releases/download/v0.5.0/MonoCode_0.5.0_amd64.deb"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1789684949,
@@ -863,6 +851,31 @@
         "owner": "nix-community",
         "repo": "nixvim",
         "type": "github"
+      }
+    },
+    "orca": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-9E0ktqGLwtjoyperAbxUJHEQpr0VLhbzDJnT9itwzXA=",
+        "type": "file",
+        "url": "https://github.com/stablyai/orca/releases/download/v1.4.217/orca-ide_1.4.217_amd64.deb"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/stablyai/orca/releases/download/v1.4.217/orca-ide_1.4.217_amd64.deb"
+      }
+    },
+    "pi-agent": {
+      "flake": false,
+      "locked": {
+        "lastModified": 499162500,
+        "narHash": "sha256-nI0K6WkgG9zvhYenDlHwqH0XIVDeTEtHVXCQ4UuvBjs=",
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.99.1.tgz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.99.1.tgz"
       }
     },
     "pre-commit-hooks": {
@@ -948,9 +961,10 @@
         "hyprland-scroll-overview": "hyprland-scroll-overview",
         "kelivo": "kelivo",
         "mcode": "mcode",
-        "monocode": "monocode",
         "nixpkgs": "nixpkgs_2",
         "nixvim": "nixvim",
+        "orca": "orca",
+        "pi-agent": "pi-agent",
         "qtengine": "qtengine",
         "ragenix": "ragenix",
         "wechat": "wechat",

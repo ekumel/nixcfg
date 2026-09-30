@@ -47,17 +47,22 @@ pkgs.buildNpmPackage (finalAttrs: {
   src = flake.inputs.pi-agent;
 
   # 上游 npm tarball 自带 npm-shrinkwrap.json 但缺 integrity（见文件
-  # 顶部注释），buildNpmPackage 的 prefetch-npm-deps 拒绝。补一份
-  # vendored lockfile：升级时跑 `npm install --package-lock-only
-  # --omit=dev --registry=...` 生成，被提交到仓库跟踪。详见文件顶部。
+  # 顶部注释），buildNpmPackage 的 prefetch-npm-deps 看到
+  # shrinkwrap 存在会优先用它、然后报 "non-git dependencies should
+  # have associated integrity"。所以两个动作都要做：
+  #   1. rm 掉上游的 shrinkwrap，让 buildNpmPackage 退回读 package-lock.json；
+  #   2. cp 一份 vendored lockfile 进去（升级脚本重生，详见文件顶部）。
+  # 不能只 cp 不 rm——buildNpmPackage 的 hook 顺序是先看 shrinkwrap，
+  # 看到就跳过 package-lock.json。
   postPatch = ''
+    rm -f npm-shrinkwrap.json
     cp ${./pi-agent-package-lock.json} package-lock.json
   '';
 
   # npm ci --omit=dev 后 node_modules cacache 的 sha256。
   # 升级脚本会跑 `nix-shell -p prefetch-npm-deps` + `nix hash path`
   # 算出 base64 写回此处。
-  npmDepsHash = "sha256-qdA/PyoGbxM+QEq1pK6aRWMjShdT9eLgLB7LPfDxyy0=";
+  npmDepsHash = "sha256-odEi/e05Sz82lSGSh8LS+QpKCODycuXjO/fvnSIkgRk=";
 
   # pi 的 npm 包没有「build」脚本——dist/bundle/cli.js 是上游 release
   # 时已经预打包好的产物（含 photon-node WASM、theme、assets 等都
