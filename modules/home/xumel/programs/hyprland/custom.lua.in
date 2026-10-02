@@ -1,0 +1,167 @@
+-- Hyprland 自定义配置（Lua）。由 Nix 生成，请勿手改；
+-- 修改请编辑 modules/home/xumel/programs/hyprland/custom.lua.in。
+--
+-- 本文件由 DMS 生成的 ~/.config/hypr/hyprland.lua 手动 require("custom")
+-- 载入（DMS 不感知此文件，导入由用户完成）。
+
+package.path = package.path .. ";" .. (os.getenv("HOME") or "") .. "/.config/hypr/?.lua"
+
+------------------
+---- 显示器 ----
+------------------
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+
+-- QEMU 虚拟显示器 Virtual-1：EDID 里没有 2560x1440，用自定义 modeline（CVT）。
+hl.monitor({
+    output   = "Virtual-1",
+    mode     = "modeline 241.50 2560 2608 2640 2720 1440 1443 1448 1481 +hsync -vsync",
+    position = "auto",
+    scale    = 1,
+})
+
+--------------------------------
+---- 工作区概览插件 ----
+--------------------------------
+-- hyprland-scroll-overview（类 niri 的滚动概览）。
+-- 由 Nix 用系统 Hyprland 构建，见 lib/hyprland-scroll-overview.nix。
+hl.plugin.load("${scrollOverviewPlugin}")
+
+------------------------
+---- 环境变量 ----
+------------------------
+hl.env("QT_QPA_PLATFORMTHEME", "qtengine")
+hl.env("GTK_THEME", "Darkly")
+hl.env("XCURSOR_THEME", "Bibata-Modern-Ice")
+hl.env("XCURSOR_SIZE", "48")
+
+------------------
+---- 外观 ----
+------------------
+hl.config({
+    general = {
+        resize_on_border = true,
+        allow_tearing    = false,
+        layout = "scrolling",
+    },
+    decoration = {
+        rounding_power = 2,
+        -- 聚焦窗口 0.9，其他窗口 0.8。
+        active_opacity   = 0.9,
+        inactive_opacity = 0.8,
+        shadow = {
+            enabled = true, 
+            range = 5, 
+            render_power = 4,
+        },
+        blur = {
+            enabled = true, 
+            size = 8, 
+            passes = 2,
+            xray = true,
+            new_optimizations = true, 
+        },
+        -- 移动/缩放窗口时的弹簧抖动效果。
+        wobble = { enabled = true },
+    },
+    animations = { enabled = true },
+    scrolling = {
+        focus_fit_method   = 1,
+        follow_min_visible = 0.4,
+        wrap_focus         = true,
+        wrap_swapcol       = true,
+    },
+    input = {
+        kb_layout = "cn",
+        follow_mouse = 0,
+        sensitivity = 0,
+        touchpad = { natural_scroll = true },
+    },
+    cursor = {
+        enable_hyprcursor   = false,
+        no_warps = true
+    },
+    misc = {
+        force_default_wallpaper = 0,
+        disable_hyprland_logo   = true,
+    },
+})
+
+-- 工作区概览（hyprland-scroll-overview）配置：
+-- layout = "vertical" 与上面的滚动布局/垂直工作区切换保持一致。
+hl.config({
+    plugin = {
+        scrolloverview = {
+            gesture_distance = 300,
+            scale            = 0.5,
+            workspace_gap    = 100,
+            layout           = "vertical",
+            wallpaper        = 0,
+            blur             = false,
+            shadow = { enabled = true, range = 50 },
+        },
+    },
+})
+
+hl.curve("easeOutQuint", { type = "bezier", points = { {0.23, 1},   {0.32, 1} } })
+hl.curve("almostLinear", { type = "bezier", points = { {0.5, 0.5},  {0.75, 1} } })
+hl.curve("quick",        { type = "bezier", points = { {0.15, 0},   {0.1, 1} } })
+hl.curve("standard",     { type = "bezier", points = { {0.05, 0.9}, {0.1, 1.05} } })
+hl.curve("easy", { type = "spring", mass = 1, stiffness = 238.1191, dampening = 24.21279333 })
+
+hl.animation({ leaf = "global",     enabled = true, speed = 10,   bezier = "default" })
+hl.animation({ leaf = "border",     enabled = true, speed = 5.39, bezier = "easeOutQuint" })
+hl.animation({ leaf = "windows",    enabled = true, speed = 4.79, spring = "easy" })
+hl.animation({ leaf = "windowsIn",  enabled = true, speed = 4.1,  spring = "easy", style = "popin 87%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.49, bezier = "linear", style = "popin 87%" })
+hl.animation({ leaf = "fade",       enabled = true, speed = 3.03, bezier = "quick" })
+hl.animation({ leaf = "layers",     enabled = true, speed = 3.81, bezier = "easeOutQuint" })
+hl.animation({ leaf = "layersIn",   enabled = true, speed = 4,    bezier = "easeOutQuint", style = "fade" })
+hl.animation({ leaf = "layersOut",  enabled = true, speed = 1.5,  bezier = "linear", style = "fade" })
+-- 滚动布局：工作区改垂直方向切换，避免与水平“带子”互相干扰。
+hl.animation({ leaf = "workspaces",    enabled = true, speed = 4, bezier = "standard", style = "slidevert" })
+hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 4, bezier = "standard", style = "slidevert" })
+hl.animation({ leaf = "workspacesOut", enabled = true, speed = 4, bezier = "standard", style = "slidevert" })
+
+-- 3 指水平切换工作区的手势由 DMS 生成（~/.config/hypr/dms/binds.lua），
+-- 这里不再重复定义，否则会被先注册的 DMS 手势 shadow 并触发警告。
+
+----------------------
+---- 自动启动 ----
+----------------------
+hl.on("hyprland.start", function()
+    hl.exec_cmd("${dbusUpdateEnv} --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+    hl.exec_cmd("${systemctl} --user start hyprland-session.target")
+    hl.exec_cmd("${fcitx5} -d")
+    hl.exec_cmd("${polkitAgent}")
+    hl.exec_cmd("${ksecretdDaemon}")
+    hl.exec_cmd("${kwalletd6Daemon}")
+    hl.exec_cmd("${xsettingsd}")
+    -- DMS（dms.service）与 dsearch 均为 systemd 用户服务，随
+    -- graphical-session.target 自动启动（由上面的 hyprland-session.target
+    -- 间接拉起），此处无需再 exec。
+end)
+
+----------------------
+---- 窗口规则 ----
+----------------------
+hl.window_rule({
+    name  = "suppress-maximize-events",
+    match = { class = ".*" },
+    suppress_event = "maximize",
+})
+hl.window_rule({
+    name  = "fix-xwayland-drags",
+    match = { class = "^$", title = "^$", xwayland = true, float = true, fullscreen = false, pin = false },
+    no_focus = true,
+})
+
+-- DMS 的弹窗（设置 / 仪表盘等）浮动居中。
+hl.window_rule({
+    name  = "dms-floating",
+    match = { class = "^(com.danklinux.dms)$" },
+    float = true,
+    center = true,
+})
+
+-- DMS 的图层窗口不做进出动画（避免与 shell 自身动画叠加）。
+hl.layer_rule({ match = { namespace = "^dms" }, no_anim = true })

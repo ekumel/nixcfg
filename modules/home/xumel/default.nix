@@ -9,14 +9,17 @@
     inputs.nixvim.homeModules.nixvim
 
     ./packages
+    ./programs/audio.nix
     ./programs/dms-mode-hook.nix
     ./programs/fish.nix
+    ./programs/gtk.nix
     ./programs/helix.nix
     ./programs/hyprland.nix
     ./programs/input-method.nix
     ./programs/kdeconnect.nix
     ./programs/matugen
     ./programs/nixvim
+    ./programs/nodejs.nix
     ./programs/pi-agent.nix
     ./programs/qt.nix
     ./programs/xsettingsd.nix

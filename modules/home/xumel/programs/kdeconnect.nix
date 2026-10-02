@@ -4,13 +4,25 @@
 
 {
   systemd.user.services.kdeconnectd = {
-    description = "KDE Connect Daemon";
-    documentation = [ "man:kdeconnectd(1)" ];
+    # home-manager 的 systemd 模块要求所有列表型字段为属性集形式
+    description = {
+      "KDE Connect Daemon" = true;
+    };
+    documentation = {
+      "man:kdeconnectd(1)" = true;
+    };
 
     # 依赖 D-Bus session，确保网络就绪
-    after = [ "dbus.session.target" "network.target" ];
-    wants = [ "dbus.session.target" ];
-    partOf = [ "graphical-session.target" ];
+    after = {
+      "dbus.session.target" = true;
+      "network.target" = true;
+    };
+    wants = {
+      "dbus.session.target" = true;
+    };
+    partOf = {
+      "graphical-session.target" = true;
+    };
 
     serviceConfig = {
       Type = "dbus";
@@ -20,8 +32,9 @@
       # 异常退出时自动重启
       Restart = "on-failure";
     };
-  };
 
-  # 确保 kdeconnectd 在登录后自动启动
-  systemd.user.targets.graphical-session.wantedBy = [ "kdeconnectd.service" ];
+    wantedBy = {
+      "graphical-session.target" = true;
+    };
+  };
 }

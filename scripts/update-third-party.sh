@@ -163,21 +163,6 @@ updater_prismlauncher_offline_account() {
   RESULTS+=("prismlauncher-offline-account"$'\t'"${url}"$'\t'"${version}")
 }
 
-# kokovp：上游不发 release，但有 git tag（v1.0.0 / v1.1.0 / v1.2.0 / v1.2.1
-# 等）。我们直接从 GitHub tags API 拿最新 tag，按
-# `https://github.com/brainrom/kokovp/archive/refs/tags/<tag>.tar.gz` 拼 URL。
-updater_kokovp() {
-  local tags tag version url
-  tags=$(curl "${CURL_BASE[@]}" \
-    "https://api.github.com/repos/brainrom/kokovp/tags?per_page=1")
-  [ -n "$tags" ] || { echo "GitHub tags API 返回空" >&2; return 1; }
-  tag=$(printf '%s' "$tags" | jq -r '.[0].name // empty')
-  [ -n "$tag" ] || { echo "GitHub tags API 无 name" >&2; return 1; }
-  version="$tag"
-  url="https://github.com/brainrom/kokovp/archive/refs/tags/${tag}.tar.gz"
-  RESULTS+=("kokovp"$'\t'"${url}"$'\t'"${version}")
-}
-
 # baidunetdisk：上游 https://pan.baidu.com/download 是 SPA，HTML 模板里
 # 没有版本字符串；issuecdn.baidupcs.com 也没有 directory listing。
 # 因此未提供自动探测：手动到下载页查版本，按
@@ -452,14 +437,13 @@ declare -A UPDATERS=(
   [darkly-gtk]=updater_darkly_gtk
   [goquark]=updater_goquark
   [prismlauncher-offline-account]=updater_prismlauncher_offline_account
-  [kokovp]=updater_kokovp
   [mcode]=updater_mcode
   [pi-agent]=updater_pi_agent
   [orca]=updater_orca
 )
 
 if [ "$#" -eq 0 ]; then
-  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account kokovp mcode pi-agent orca)
+  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account mcode pi-agent orca)
 else
   TARGETS=("$@")
 fi
@@ -521,7 +505,6 @@ for r in "${RESULTS[@]}"; do
     darkly-gtk)        file=modules/nixos/desktop/gtk.nix ;;
     goquark)           file=packages/goquark.nix ;;
     prismlauncher-offline-account)    file=packages/prismlauncher-offline-account.nix ;;
-    kokovp)                   file=packages/kokovp.nix ;;
     mcode)             file=packages/mcode.nix ;;
     pi-agent)           file=packages/pi-agent.nix ;;
     orca)              file=packages/orca.nix ;;

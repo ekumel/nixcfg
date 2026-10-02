@@ -5,7 +5,12 @@
 #   iconBadged { pname = "kazumi"; pkg = kazumi; cornerRadius = 256; }      # 圆形
 #   iconBadged { pname = "piliplus"; pkg = piliplus; bg = "transparent"; }  # 无背景
 #   iconBadged { pname = "x"; pkg = x; scale = 0.6; cornerRadius = 0; }     # 紧凑方块
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  flake,
+  ...
+}:
 
 let
   iconBadged =
@@ -28,7 +33,9 @@ let
       };
       base = { inherit pname pkg; };
     in
-    pkgs.callPackage ../../../../lib/icon-overrides.nix (base // extra);
+    # 走 flake.lib 而非相对路径 ../../../../lib/：这样本模块被别的 flake
+    # 消费时仍能解析。
+    flake.lib.icon-overrides pkgs (base // extra);
 in
 {
   home.packages = with pkgs; [

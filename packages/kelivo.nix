@@ -137,8 +137,9 @@ buildFHSEnv {
   name = "${pname}-fhs";
   executableName = pname;
   # Flutter app 的运行时库栈与 zedg 类似：GTK / 字体 / Wayland / GPU /
-  # TLS / dbus。这里直接复用同一份列表（详见 lib/fhs-shared-pkgs.nix 注释）。
-  targetPkgs = pkgs: import ../lib/fhs-shared-pkgs.nix { inherit pkgs; };
+  # TLS / dbus。走 flake.lib 而非相对路径 import ../lib/，这样本包被别的
+  # flake 消费时仍能解析（分组说明详见 lib/fhs-shared-pkgs.nix）。
+  targetPkgs = pkgs: flake.lib.fhs-shared-pkgs pkgs;
   multiPkgs = pkgs: [ ];
   runScript = "${unpacked}/kelivo";
   # 与 zedg.nix 同款：/etc/nixos 不在 FHS 白名单，wrapper --chdir 会失败。

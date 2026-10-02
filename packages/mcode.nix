@@ -43,6 +43,11 @@ pkgs.buildNpmPackage (finalAttrs: {
 
   src = flake.inputs.mcode;
 
+  # 强制使用 Node.js 22 而非默认的 24，以避免 better-sqlite3 在 Node 24 下
+  # 处理中文时的 V8 Isolate 生命周期 bug（mcode 0.5.9 + Node 24.20.0 + 中文输入
+  # → SIGABRT: Assertion failed: (env) != nullptr）。
+  nodejs = pkgs.nodejs_22;
+
   # 上游 npm tarball 不带 package-lock.json，buildNpmPackage 的
   # prefetch-npm-deps 会因找不到锁文件而退出（hash 不固定 → 不可
   # 重现）。补一份 vendored lockfile：这份 lockfile 是升级时在 host 上
@@ -70,7 +75,10 @@ pkgs.buildNpmPackage (finalAttrs: {
 
   # 保留 optionalDependencies 的 native 模块（better-sqlite3），不要
   # 因为「看似可选」就 prune 掉——mcode 强依赖 sqlite。
-  npmFlags = [ "--include=optional" "--ignore-scripts=false" ];
+  npmFlags = [
+    "--include=optional"
+    "--ignore-scripts=false"
+  ];
 
   dontNpmPruneBuild = false;
 
@@ -81,11 +89,11 @@ pkgs.buildNpmPackage (finalAttrs: {
   dontNpmBuild = true;
 
   # 安装到 $out/：npmInstallHook 把整个 src 拷到
-# $out/lib/node_modules/@minimax-ai/code/，nodejsInstallExecutables
-# 按 package.json 的 "bin" 字段自动生成 $out/bin/mcode 与
-# $out/bin/mcode-tools（wrapper → node cli.js / mcode-tools.js），
-# nodejsInstallManuals 把 README.md / CHANGELOG.md 等装到 share/man/。
-# 所以这里不需要自定义 installPhase。
+  # $out/lib/node_modules/@minimax-ai/code/，nodejsInstallExecutables
+  # 按 package.json 的 "bin" 字段自动生成 $out/bin/mcode 与
+  # $out/bin/mcode-tools（wrapper → node cli.js / mcode-tools.js），
+  # nodejsInstallManuals 把 README.md / CHANGELOG.md 等装到 share/man/。
+  # 所以这里不需要自定义 installPhase。
 
   # README 提示 BYOK 与登录后的 sessions 写到 ~/.minimax 或
   # ~/.minimax-<profile>（packages/config/src/data-dir.ts），由运行时

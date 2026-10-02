@@ -8,7 +8,6 @@
     ./niri.nix
     ./dms.nix
     ./icons.nix
-    ./gtk.nix
     ./qt.nix
     ./greeter.nix
     ./dolphin.nix
@@ -18,19 +17,15 @@
   hardware.graphics.enable = true;
   services.libinput.enable = true;
 
-  # Wayland 下常见应用（Electron / Firefox）的原生 Wayland 提示，
-  # 以及会话光标主题（含 X11 / GTK / Qt 客户端）。
-  # 光标：Bibata-Modern-Ice（XCursor；上游未发 hyprcursor 版本，Hyprland
-  # 在 enable_hyprcursor=true 时找不到主题会自动回退到 XCursor）。
+  # Wayland 下常见应用（Electron / Firefox）的原生 Wayland 提示。
+  #
+  # 主题相关的会话变量（GTK_THEME / XCURSOR_THEME / XCURSOR_SIZE）已下沉到
+  # 用户空间：见 modules/home/xumel/programs/gtk.nix 与
+  # modules/home/xumel/programs/hyprland/custom.lua.in（后者用 hl.env 在
+  # Hyprland 会话里设置，供纯 XWayland 应用生效）。
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
-    XCURSOR_THEME = "Bibata-Modern-Ice";
-    XCURSOR_SIZE = "48";
-    # GTK_THEME：兜底。dconf 优先，但 dms-mode-hook 在 DMS 启动前还没写
-    # 时，部分 GTK 应用（如 pwvucontrol）会用默认主题；显式写一遍确保
-    # 所有 GTK 进程都用 Darkly。
-    GTK_THEME = "Darkly";
   };
 
   # 桌面会话依赖的服务：电源/亮度信息、性能配置、蓝牙（无 shell 时也保留，

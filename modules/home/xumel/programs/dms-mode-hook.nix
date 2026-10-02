@@ -6,12 +6,15 @@
 #   - onDankHooksStarted       值：started | restarted
 #
 # ── onDankHooksStarted（一次性写静态项）──────────────────────────────
-# NixOS 的 programs.dconf.profiles.user.databases 只在用户 dconf profile
-# 还没被首次登录创建时播种默认值；profile 已存在后 Nix 不会再覆盖。
-# 因此用本钩子在每次 DMS 启动时把静态项写进 dconf：
-#   - gtk-theme / cursor-theme / cursor-size / font-name / document-font-name
-#     / monospace-font-name
-# 这样 pwvucontrol 等 GTK 应用能拿到 Darkly 主题。
+# org.gnome.desktop.interface 的静态项（gtk-theme / icon-theme / cursor-theme
+# / cursor-size / 三个字体键）在这里用 gsettings 写进 ~/.config/dconf/user。
+#
+# 为什么是运行时 gsettings 而不是 home-manager 的声明式配置：
+#   dconf 的用户库是运行时二进制文件，且 DMS 每次启动 / 模式切换都要重写它，
+#   不能做成 store 软链。原先这些键还在系统层
+#   programs.dconf.profiles.user.databases 声明过一份，但 NixOS 只在用户
+#   dconf profile 尚未被首次登录创建时播种默认值，之后不再覆盖——首次登录后
+#   即失效的僵尸配置，且与本 hook 重复。系统层那份已随主题配置下沉一并移除。
 #
 # ── onLightModeChanged / onMatugenCompleted（写模式相关项）───────────
 #   - color-scheme（GTK4 / libadwaita 选 gtk.css 还是 gtk-dark.css）
@@ -50,6 +53,11 @@ let
       "org.gnome.desktop.interface"
       "monospace-font-name"
       "Maple Mono NF CN 11"
+    ]
+    [
+      "org.gnome.desktop.interface"
+      "icon-theme"
+      "Colloid"
     ]
     [
       "org.gnome.desktop.interface"

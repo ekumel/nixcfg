@@ -1,6 +1,13 @@
-# GTK 主题：wrymt/darkly-gtk（与 Qt 端 Darkly 样式同源）。
+# darkly-gtk.nix：构建 wrymt/darkly-gtk 的 GTK 主题，并把它的调色板接到
+# DMS / matugen 的动态配色上。
 #
-# 说明：
+# 为什么放 lib/：
+#   构建逻辑（94 行调色板映射表 + sed 改写 + installPhase）与「这台机器上
+#   GTK 该怎么配」是两件事。前者是主题的固有属性，后者是系统策略。放在
+#   modules/nixos/desktop/gtk.nix 里会让那个模块一半在讲构建细节、一半在
+#   讲 dconf 键值；抽到这里后 gtk.nix 只剩「装这个包 + 声明这些设置」。
+#
+# 主题本身：
 #   - darkly-gtk 用 sass 源码构建：sassc 把 sass/{gtk3-light,gtk3-dark,gtk4}.scss
 #     编译成 CSS，输出目录布局完全照搬 upstream install.sh：
 #       $out/share/themes/Darkly/{assets,gtk-3.0,gtk-4.0}/...
@@ -21,7 +28,7 @@
 #   - GTK 命名色按 provider 解析，且引用发生在规则解析期：在
 #     ~/.config/gtk-3.0/gtk.css 里写 @define-color 覆盖不到主题 provider，
 #     因此覆盖必须落在主题自己的 CSS 里、并且在规则引用之前。
-#   - 本模块在 build 时做两件事：
+#   - 本文件在 build 时做两件事：
 #       (1) 把每条 `@define-color <n>_breeze <值>;` 改写成引用 DMS 语义色
 #           （`@define-color <n>_breeze @window_bg_color;`；明度派生用 mix() 现算）；
 #       (2) 在每个编译产物最顶部 @import 两个文件：
@@ -32,19 +39,15 @@
 #     Breeze 语义色。这样不会因某个模板缺名而让 GTK 解析失败丢弃整张表。
 {
   pkgs,
-  flake,
   lib,
-  ...
+  flake,
+  # DMS 运行时写 dank-colors.css 的用户家目录。本机单用户 xumel，所以调用方
+  # 传绝对路径进来——与 modules/nixos/desktop/dms.nix 的 pywalfox 同步脚本
+  # 保持一致。
+  userHome,
 }:
+
 let
-  # 第三方源统一通过 flake inputs 跟踪（见 flake.nix）。
-  # `flake.inputs.<name>` 在 `flake = false` 时是 store path 字符串（prefetch
-  # 后的 tarball 解包目录），可直接当 src 用——不需要 lib/sources 包装。
-
-  # matugen/DMS 的运行时输出位置。与 dms.nix 里的 pywalfox 同步脚本一致，
-  # 直接写绝对路径（本机单用户 xumel）。
-  userHome = "/home/xumel";
-
   # Darkly `_breeze` 调色板 → DMS 语义色。
   # 键是 `_breeze` 前缀；值是 `@define-color` 右侧（@名 或 GTK 颜色表达式）。
   # 键必须是 sass/_colors.scss 里出现过的 <name>（对应 <name>_breeze）。
@@ -62,9 +65,9 @@ let
     insensitive_selected_bg_color = "mix(@window_bg_color, @window_fg_color, 0.05)";
     insensitive_selected_fg_color = "mix(@window_bg_color, @window_fg_color, 0.45)";
     insensitive_unfocused_bg_color = "mix(@window_bg_color, @window_fg_color, 0.05)";
-    insensitive_unfocused_fg_color = "mix(@window_bg_color, @window_fg_color, 0.45)";
     insensitive_unfocused_selected_bg_color = "mix(@window_bg_color, @window_fg_color, 0.05)";
     insensitive_unfocused_selected_fg_color = "mix(@window_bg_color, @window_fg_color, 0.45)";
+    insensitive_unfocused_fg_color = "mix(@window_bg_color, @window_fg_color, 0.45)";
 
     # 链接
     link_color = "@accent_bg_color";
@@ -166,119 +169,93 @@ let
     @define-color headerbar_bg_color #222222;
     @define-color headerbar_fg_color #eff0f1;
   '';
-
-  darkly-gtk = pkgs.stdenvNoCC.mkDerivation {
-    pname = "darkly-gtk";
-    version = "unstable-2026-04-26";
-
-    src = flake.inputs.darkly-gtk;
-
-    nativeBuildInputs = [
-      pkgs.sassc
-      pkgs.gnused
-    ];
-
-    dontConfigure = true;
-    dontBuild = true;
-
-    installPhase = ''
-      runHook preInstall
-
-      # 上游 install.sh：缺 darklyrc 时写入空的用户设置以满足 @import。
-      touch sass/_darkly_user_settings.scss
-
-      mkdir -p build
-      sassc -M -t compact sass/gtk3-light.scss build/gtk3-light.css
-      sassc -M -t compact sass/gtk3-dark.scss  build/gtk3-dark.css
-      sassc -M -t compact sass/gtk4.scss       build/gtk4.css
-
-      # (1) 把 _breeze 硬编码调色板改写成引用 DMS 语义色。
-      sed -i -f ${paletteSed} build/gtk3-light.css build/gtk3-dark.css build/gtk4.css
-
-      # (1b) 删除 Darkly 自己导出的这些 libadwaita 别名。
-      #      GTK4 惰性解析命名色：Darkly 的 `window_bg_color` 定义成
-      #      `@theme_bg_color_breeze`，而我们又把 `theme_bg_color_breeze` 指回
-      #      `@window_bg_color`，形成引用环；GTK 检测到环会返回 NULL，背景色
-      #      回退为 transparent（所以窗口整个透明）。`headerbar_*`、`card_bg_color`
-      #      （它原本还是 70% 透明）同理。这几个名字 DMS 明/暗模板都会提供，
-      #      fallback 里也有，删掉即可，改由 DMS 的值生效。
-      sed -i \
-        -e '/^@define-color window_bg_color /d' \
-        -e '/^@define-color headerbar_bg_color /d' \
-        -e '/^@define-color headerbar_fg_color /d' \
-        -e '/^@define-color card_bg_color /d' \
-        build/gtk3-light.css build/gtk3-dark.css build/gtk4.css
-
-      # (2) 在最顶部注入 @import：先 fallback（同目录，相对路径），
-      #     再 DMS 运行时文件（绝对路径，缺失时仅告警，fallback 仍可用）。
-      #     gtk4.css 开头是 reset 规则，所以必须在最终文件顶部插入而不是改 sass。
-      inject_imports() {
-        local css="$1" runtime="$2"
-        {
-          printf '@import url("dms-fallback.css");\n'
-          printf '@import url("file://%s");\n' "$runtime"
-          cat "$css"
-        } > "$css.tmp"
-        mv "$css.tmp" "$css"
-      }
-      inject_imports build/gtk3-light.css "${userHome}/.config/gtk-3.0/dank-colors.css"
-      inject_imports build/gtk3-dark.css  "${userHome}/.config/gtk-3.0/dank-colors.css"
-      inject_imports build/gtk4.css       "${userHome}/.config/gtk-4.0/dank-colors.css"
-
-      dest=$out/share/themes/Darkly
-      mkdir -p "$dest/assets" "$dest/gtk-3.0" "$dest/gtk-4.0"
-
-      cp -r assets/*.{png,svg} "$dest/assets/"
-
-      # GTK4 主题资源链接（与 install.sh 一致）。
-      ln -s ../assets "$dest/gtk-3.0/darkly-gtk-assets"
-      ln -s ../assets "$dest/gtk-4.0/darkly-gtk-assets"
-      ln -s ./gtk.css  "$dest/gtk-4.0/gtk-dark.css"
-
-      cp build/gtk3-light.css "$dest/gtk-3.0/gtk.css"
-      cp build/gtk3-dark.css  "$dest/gtk-3.0/gtk-dark.css"
-      cp build/gtk4.css       "$dest/gtk-4.0/gtk.css"
-
-      # fallback 命名色与 gtk.css 同目录，供相对 @import 命中。
-      cp ${dmsFallback} "$dest/gtk-3.0/dms-fallback.css"
-      cp ${dmsFallback} "$dest/gtk-4.0/dms-fallback.css"
-
-      runHook postInstall
-    '';
-
-    meta = {
-      description = "Darkly GTK theme (port of Bali10050/Darkly Qt style)";
-      homepage = "https://github.com/wrymt/darkly-gtk";
-      license = lib.licenses.lgpl21Only;
-      platforms = lib.platforms.linux;
-    };
-  };
 in
-{
-  environment.systemPackages = [
-    darkly-gtk
-    # 注：xsettingsd 守护进程属于用户会话，装在用户 profile
-    # （modules/home/xumel/programs/xsettingsd.nix）。
+pkgs.stdenvNoCC.mkDerivation {
+  pname = "darkly-gtk";
+  version = "unstable-2026-04-26";
+
+  # 第三方源统一通过 flake inputs 跟踪（见 flake.nix）。`flake.inputs.<name>`
+  # 在 `flake = false` 时是 store path 字符串（prefetch 后的 tarball 解包
+  # 目录），可直接当 src 用——不需要 lib/sources 包装。
+  src = flake.inputs.darkly-gtk;
+
+  nativeBuildInputs = [
+    pkgs.sassc
+    pkgs.gnused
   ];
 
-  # GTK 主题 / 图标 / 光标 / 字体：与 qt.nix 保持一致。
-  # 注意：Qt（QIconLoader）按“目录名”查找图标主题，GTK 用 index.theme 的
-  # Name 字段（dconf 里填 "Vector (Dark)"）。qtengine 里仍填 "Vector-dark"
-  # 目录名，详见 qt.nix。
-  programs.dconf.profiles.user.databases = [
-    {
-      settings."org/gnome/desktop/interface" = {
-        gtk-theme = "Darkly";
-        icon-theme = "Colloid";
-        cursor-theme = "Bibata-Modern-Ice";
-        # cursor-size 在 GSettings schema 里是 int32，必须显式标注类型。
-        cursor-size = lib.gvariant.mkInt32 48;
-        # 字体：与 qt.nix 里的 LXGW WenKai / Maple Mono NF CN 一致。
-        font-name = "LXGW WenKai 11";
-        document-font-name = "LXGW WenKai 11";
-        monospace-font-name = "Maple Mono NF CN 11";
-      };
+  dontConfigure = true;
+  dontBuild = true;
+
+  installPhase = ''
+    runHook preInstall
+
+    # 上游 install.sh：缺 darklyrc 时写入空的用户设置以满足 @import。
+    touch sass/_darkly_user_settings.scss
+
+    mkdir -p build
+    sassc -M -t compact sass/gtk3-light.scss build/gtk3-light.css
+    sassc -M -t compact sass/gtk3-dark.scss  build/gtk3-dark.css
+    sassc -M -t compact sass/gtk4.scss       build/gtk4.css
+
+    # (1) 把 _breeze 硬编码调色板改写成引用 DMS 语义色。
+    sed -i -f ${paletteSed} build/gtk3-light.css build/gtk3-dark.css build/gtk4.css
+
+    # (1b) 删除 Darkly 自己导出的这些 libadwaita 别名。
+    #      GTK4 惰性解析命名色：Darkly 的 `window_bg_color` 定义成
+    #      `@theme_bg_color_breeze`，而我们又把 `theme_bg_color_breeze` 指回
+    #      `@window_bg_color`，形成引用环；GTK 检测到环会返回 NULL，背景色
+    #      回退为 transparent（所以窗口整个透明）。`headerbar_*`、`card_bg_color`
+    #      （它原本还是 70% 透明）同理。这几个名字 DMS 明/暗模板都会提供，
+    #      fallback 里也有，删掉即可，改由 DMS 的值生效。
+    sed -i \
+      -e '/^@define-color window_bg_color /d' \
+      -e '/^@define-color headerbar_bg_color /d' \
+      -e '/^@define-color headerbar_fg_color /d' \
+      -e '/^@define-color card_bg_color /d' \
+      build/gtk3-light.css build/gtk3-dark.css build/gtk4.css
+
+    # (2) 在最顶部注入 @import：先 fallback（同目录，相对路径），
+    #     再 DMS 运行时文件（绝对路径，缺失时仅告警，fallback 仍可用）。
+    #     gtk4.css 开头是 reset 规则，所以必须在最终文件顶部插入而不是改 sass。
+    inject_imports() {
+      local css="$1" runtime="$2"
+      {
+        printf '@import url("dms-fallback.css");\n'
+        printf '@import url("file://%s");\n' "$runtime"
+        cat "$css"
+      } > "$css.tmp"
+      mv "$css.tmp" "$css"
     }
-  ];
-  environment.sessionVariables.GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
+    inject_imports build/gtk3-light.css "${userHome}/.config/gtk-3.0/dank-colors.css"
+    inject_imports build/gtk3-dark.css  "${userHome}/.config/gtk-3.0/dank-colors.css"
+    inject_imports build/gtk4.css       "${userHome}/.config/gtk-4.0/dank-colors.css"
+
+    dest=$out/share/themes/Darkly
+    mkdir -p "$dest/assets" "$dest/gtk-3.0" "$dest/gtk-4.0"
+
+    cp -r assets/*.{png,svg} "$dest/assets/"
+
+    # GTK4 主题资源链接（与 install.sh 一致）。
+    ln -s ../assets "$dest/gtk-3.0/darkly-gtk-assets"
+    ln -s ../assets "$dest/gtk-4.0/darkly-gtk-assets"
+    ln -s ./gtk.css  "$dest/gtk-4.0/gtk-dark.css"
+
+    cp build/gtk3-light.css "$dest/gtk-3.0/gtk.css"
+    cp build/gtk3-dark.css  "$dest/gtk-3.0/gtk-dark.css"
+    cp build/gtk4.css       "$dest/gtk-4.0/gtk.css"
+
+    # fallback 命名色与 gtk.css 同目录，供相对 @import 命中。
+    cp ${dmsFallback} "$dest/gtk-3.0/dms-fallback.css"
+    cp ${dmsFallback} "$dest/gtk-4.0/dms-fallback.css"
+
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "Darkly GTK theme (port of Bali10050/Darkly Qt style)";
+    homepage = "https://github.com/wrymt/darkly-gtk";
+    license = lib.licenses.lgpl21Only;
+    platforms = lib.platforms.linux;
+  };
 }

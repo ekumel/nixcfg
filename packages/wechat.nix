@@ -35,9 +35,7 @@ let
     x86_64-linux = flake.inputs.wechat;
   };
 
-  src =
-    srcBySystem.${system}
-      or (throw "wechat: 不支持的系统 ${system}");
+  src = srcBySystem.${system} or (throw "wechat: 不支持的系统 ${system}");
 
   appimageContents = appimageTools.extract {
     inherit pname version src;

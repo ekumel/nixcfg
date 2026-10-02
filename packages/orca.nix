@@ -7,17 +7,19 @@
 # Linux .AppImage + .deb + .rpm + Arch AUR。Linux 选 .deb：180 MB，
 # 比 AppImage（216 MB）小、closure 干净；nixpkgs 不收录。
 #
-# 打包策略：与 baidunetdisk.nix 完全相同——.deb 解包 + buildFHSEnv 封装。
+# 打包策略：与 baidunetdisk.nix 同款——.deb 解包 + buildFHSEnv 封装。
+# 解包与 FHS 封装的完整流程（ar 解包 → buildFHSEnv → 搬 .desktop 与图标
+# → 改写 Exec= → bind /etc/nixos）见 lib/build-deb-fhs.nix，本文件只留
+# 本包特有的元数据与路径。
 #   - electron 主二进制 /opt/Orca/orca-ide（224 MB）带内置 libffmpeg /
 #     libEGL / libvulkan / chrome-sandbox，运行时需要 GTK / GL / NSS /
 #     dbus / drm / systemd / cups 等「通用图形栈」+ Electron 专属
 #     libcups（已在 lib/fhs-shared-pkgs.nix 列出）。
 #   - chrome-sandbox 是 SUID-root 二进制，NixOS 不支持任意 SUID；
-#     与 baidunetdisk 同款——传 `--no-sandbox` 给主进程降级到
-#     「无沙箱」运行（Electron 自动 fallback）。
-#   - .desktop 的 Exec 是 `/opt/Orca/orca-ide %U`——我们在 wrapper
-#     里加 `--no-sandbox` flag，wrapper 暴露同名可执行，
-#     桌面环境点 .desktop 时由 wrapper 自动加 flag。
+#     Electron 的 SUID-less fallback 仍能在普通用户 namespace 下起
+#     sandbox（Linux user_namespaces + seccomp），不需要 --no-sandbox。
+#     注意 orca-ide 是 Electron 主进程，自己处理 args，传 --no-sandbox
+#     反而会被当成未知 arg 拒绝（"bad option: --no-sandbox"）。
 #
 # .deb 内部结构（Electron 标准 layout）：
 #   /opt/Orca/orca-ide              主二进制（224 MB，动态链接 GTK 等）
@@ -41,8 +43,6 @@
 }:
 
 let
-  inherit (pkgs) lib stdenvNoCC buildFHSEnv;
-
   pname = "orca";
   version = "1.4.217";
 
@@ -53,39 +53,24 @@ let
   };
 
   src =
-    srcBySystem.${stdenvNoCC.hostPlatform.system}
-      or (throw "orca: 不支持的系统 ${stdenvNoCC.hostPlatform.system}");
+    srcBySystem.${pkgs.stdenvNoCC.hostPlatform.system}
+      or (throw "orca: 不支持的系统 ${pkgs.stdenvNoCC.hostPlatform.system}");
+in
+# 走 flake.lib 而非相对路径 import ../lib/：这样本包被别的 flake 消费
+# （作为 overlay 或 packages 引用）时仍能解析，见 lib/default.nix 顶部说明。
+(flake.lib.build-deb-fhs pkgs) {
+  inherit
+    pname
+    version
+    src
+    ;
 
-  # .deb 是 ar 归档（含 control.tar.* / data.tar.* / debian-binary），
-  # `ar` 来自 binutils。Nix chroot 不允许 root-owned 输出，所以解包时
-  # 走 `--no-same-owner`（与 baidunetdisk.nix / monocode.nix 同款）。
-  unpacked = stdenvNoCC.mkDerivation {
-    inherit pname version src;
+  binaryPath = "opt/Orca/orca-ide";
+  desktopFile = "orca-ide.desktop";
 
-    nativeBuildInputs = [ pkgs.binutils ];
-
-    dontUnpack = true;
-    dontConfigure = true;
-    dontBuild = true;
-
-    installPhase = ''
-      runHook preInstall
-      mkdir -p "$out"
-      tmp=$(mktemp -d)
-      ar x "$src" --output="$tmp"
-      data_tar=$(ls "$tmp"/data.tar.* 2>/dev/null | head -n1)
-      if [ -z "$data_tar" ]; then
-        echo "找不到 data.tar.* in $tmp" >&2
-        ls -la "$tmp" >&2
-        exit 1
-      fi
-      tar --extract --file="$data_tar" --directory="$out" --no-same-owner
-      # 二进制在 deb 里已是 0755，但 tar 在某种 umask 下可能缩水。
-      chmod +x "$out/opt/Orca/orca-ide"
-      rm -rf "$tmp"
-      runHook postInstall
-    '';
-  };
+  # .desktop 的 Exec 是 `/opt/Orca/orca-ide %U` → 换成 wrapper 暴露的
+  # `orca`（pname 同名）。deb 给了 7 档 hicolor 图标，由公共流程搬运。
+  execFrom = "/opt/Orca/orca-ide";
 
   meta = {
     description = "AI orchestrator running Claude Code / Codex / OpenCode / Pi in parallel worktrees";
@@ -93,65 +78,9 @@ let
     # 上游 LICENSE 写 MIT（README 末尾 + LICENSE 文件），
     # 但 code 内容引用大量第三方（Electron / Chromium / 各 agent
     # 的 source），所以这里标 mit 但 meta 加上 platform 限定。
-    license = lib.licenses.mit;
-    sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
-    mainProgram = "orca";
+    license = pkgs.lib.licenses.mit;
     platforms = [
       "x86_64-linux"
     ];
-  };
-in
-buildFHSEnv {
-  name = "${pname}-fhs";
-  executableName = pname;
-
-  # Electron 运行时栈与 baidunetdisk / wechat / genoffice 同款：
-  # GTK / WebKit / 字体 / Wayland / GPU / TLS / dbus / NSS / cups 等。
-  # 直接复用 lib/fhs-shared-pkgs.nix；orca 专属的 cups 已加进该文件
-  # （见其顶部注释的「第三部分」）。
-  targetPkgs = pkgs: import ../lib/fhs-shared-pkgs.nix { inherit pkgs; };
-  multiPkgs = pkgs: [ ];
-
-  # FHS 沙箱里 /etc 是 tmpfs，只回链了 nixpkgs 白名单里的少数条目，
-  # /etc/nixos 不在其中。wrapper 在进入沙箱时会 `--chdir "$(pwd)"`，
-  # 若从 /etc/nixos 启动就会因目标不存在而报 "bwrap: Can't chdir to
-  # /etc/nixos: No such file or directory"。把宿主机的 /etc/nixos 以
-  # 可写方式绑进沙箱。原因同 wechat / genoffice / baidunetdisk / monocode。
-  extraBwrapArgs = [
-    "--bind"
-    "/etc/nixos"
-    "/etc/nixos"
-  ];
-
-  # 直接调用解包后的 Electron 主二进制。.desktop 的 Exec 是
-  # `/opt/Orca/orca-ide %U`（无 flags）。orca-ide 是 Electron 主进程，
-  # 自己处理 args，不需要我们传 --no-sandbox（传了反而被它当成
-  # 未知 arg 拒绝："bad option: --no-sandbox"）。
-  # chrome-sandbox 在 NixOS 不可用为 SUID-root，但 Electron 的
-  # SUID-less fallback 仍能在普通用户 namespace 下启 sandbox
-  # （Linux user_namespaces + seccomp），不需要 --no-sandbox。
-  # 如果遇到 sandbox 启动问题，再改用 wrapper 强制 --no-sandbox；
-  # 现阶段按 .desktop 原样透传。
-  runScript = "${unpacked}/opt/Orca/orca-ide";
-
-  # 复制 deb 自带的 .desktop 与 hicolor 图标到 wrapper 的 $out/share/，
-  # 并把 Exec= 里的绝对路径改成 wrapper 暴露的可执行名。
-  extraInstallCommands = ''
-    mkdir -p "$out/share/applications"
-    mkdir -p "$out/share/icons"
-
-    # .desktop：Exec=/opt/Orca/orca-ide %U
-    #   →   Exec=orca %U
-    cp "${unpacked}/usr/share/applications/orca-ide.desktop" \
-      "$out/share/applications/orca-ide.desktop"
-    substituteInPlace "$out/share/applications/orca-ide.desktop" \
-      --replace-fail "/opt/Orca/orca-ide" "orca"
-
-    # 图标（deb 给了 7 档：16/24/32/48/128/256/512）
-    cp -r "${unpacked}/usr/share/icons/." "$out/share/icons/"
-  '';
-
-  passthru = {
-    inherit unpacked;
   };
 }

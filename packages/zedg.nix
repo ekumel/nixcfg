@@ -38,8 +38,9 @@ let
     x86_64 = flake.inputs.zedg;
   };
 
-  src = srcBySystem.${stdenv.hostPlatform.linuxArch}
-    or (throw "zedg: 不支持的系统 ${stdenv.hostPlatform.system}");
+  src =
+    srcBySystem.${stdenv.hostPlatform.linuxArch}
+      or (throw "zedg: 不支持的系统 ${stdenv.hostPlatform.system}");
 
   # 原始包：解压 tarball，按 AUR `package()` 的做法把整个 usr/ 树复制到 $out。
   unpacked = stdenv.mkDerivation {
@@ -73,16 +74,20 @@ let
         gpl3Plus
         agpl3Plus
       ];
-      platforms = [ "x86_64-linux" "aarch64-linux" ];
+      platforms = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
     };
   };
 
-  # targetPkgs 说明（详见 ../lib/fhs-shared-pkgs.nix）：
+  # targetPkgs 说明（详见 lib/fhs-shared-pkgs.nix）：
   #   buildFHSEnv 只把列表里每个包自身的 out/lib/bin 输出合到 rootfs 的
   #   /usr/lib64，不递归传播 propagatedBuildInputs（与 upstream 的
   #   zed-editor-fhs 不同：那里底层是 rust 包，构建依赖自动进 rootfs）。
   #   zedg 是纯二进制 tarball，没有任何 Nix 级 buildInputs，所以这里必须
-  #   把所有需要的运行时库显式列出来——统一从 ../lib/fhs-shared-pkgs.nix 拿。
+  #   把所有需要的运行时库显式列出来——统一从 flake.lib.fhs-shared-pkgs 拿
+  #   （走 flake.lib 而非相对路径，本包被别的 flake 消费时仍能解析）。
   #
   #   executableName = pname 让 $out/bin/zedg 直接成为 wrapper，这样上游
   #   .desktop 里的 Exec=zedg 不用 substitute 就能被系统识别。
@@ -90,7 +95,7 @@ in
 buildFHSEnv {
   name = "${pname}-fhs";
   executableName = pname;
-  targetPkgs = pkgs: import ../lib/fhs-shared-pkgs.nix { inherit pkgs; };
+  targetPkgs = pkgs: flake.lib.fhs-shared-pkgs pkgs;
   multiPkgs = pkgs: [ ];
   # runScript 是 FHS env 启动时调用的命令：直接运行 unpacked 里的二进制。
   runScript = "${unpacked}/usr/bin/zedg";

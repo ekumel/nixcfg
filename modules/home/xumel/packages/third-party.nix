@@ -7,7 +7,12 @@
 #
 # 升级跑 ./scripts/update-third-party.sh：脚本探测上游、改 flake.nix 的 url、
 # 重锁，最后 `nixos-rebuild switch`。
-{ pkgs, perSystem, ... }:
+{
+  pkgs,
+  perSystem,
+  flake,
+  ...
+}:
 
 {
   home.packages = [
@@ -21,6 +26,6 @@
     perSystem.self.pi-agent # pi：开源 coding agent CLI（npm @earendil-works/pi-coding-agent）
     perSystem.self.orca # Orca：AI 编排器（Electron，GitHub release .deb，FHS 封装）
   ]
-  # Zed 配套 LSP：集中在 lib/zed-lsp.nix，避免散落到别处后被遗忘。
-  ++ (pkgs.callPackage ../../../../lib/zed-lsp.nix { });
+  # Zed 配套 LSP：集中在 lib/zed-lsp.nix，避免散落后被遗忘。
+  ++ flake.lib.zed-lsp pkgs;
 }
