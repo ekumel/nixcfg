@@ -20,6 +20,7 @@
     flake.modules.nixos.fonts
     flake.modules.nixos.input-method
     flake.modules.nixos.virtualisation
+    flake.modules.nixos.ollama
     flake.modules.nixos.gaming
     flake.modules.nixos.user-secrets
     flake.modules.nixos.nix-github-auth
