@@ -1,5 +1,6 @@
 # Agent Manager 状态（含 worktrees 与运行期数据）
 /.kilo/
+/.vscode/
 
 # 旧配置备份（不参与求值）
 /backup/
