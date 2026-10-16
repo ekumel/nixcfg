@@ -7,10 +7,12 @@
     ./hyprland.nix
     ./niri.nix
     ./dms.nix
+    ./denial.nix
     ./icons.nix
     ./qt.nix
     ./greeter.nix
     ./dolphin.nix
+    ./artcraft.nix # ArtCraft：图像 / 视频 / PDF 编辑器
   ];
 
   # 显卡与触控板支持。
@@ -59,5 +61,23 @@
     "inode/directory" = "org.kde.dolphin.desktop";
     "image/*" = "org.kde.gwenview.desktop";
     "video/*" = "mpv.desktop";
+
+    # 下载器：FluxDown（third-party.nix 里的 perSystem.self.fluxdown，
+    # Rust + GPUI 的开源下载管理器）。它自带 .desktop 声明了
+    # application/x-bittorrent 与 magnet / ed2k / fluxdown 三个 scheme，
+    # 这里补上系统级默认关联——否则浏览器点 magnet 链接只会弹出
+    # "选择应用"或什么都不发生。
+    #
+    # 注意：用户级 ~/.config/mimeapps.list 的优先级高于本文件。旧机器上
+    # 那一行曾经指向 motrix.desktop（Motrix Next 卸载后该文件已不存在，
+    # 是个失效默认项），后来又指向 rayburst.desktop（rayburst 已换掉），
+    # 都需要一并改掉，否则系统级默认不生效。
+    #
+    # 上游没有 thunder（迅雷）scheme，所以不再设 x-scheme-handler/thunder
+    # ——留着就是个指向空白的失效默认项。
+    "application/x-bittorrent" = "com.fluxdown.app.desktop";
+    "x-scheme-handler/magnet" = "com.fluxdown.app.desktop";
+    "x-scheme-handler/ed2k" = "com.fluxdown.app.desktop";
+    "x-scheme-handler/fluxdown" = "com.fluxdown.app.desktop";
   };
 }

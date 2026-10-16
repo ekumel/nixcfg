@@ -25,8 +25,10 @@
 let
   # DMS（matugen）在壁纸 / 明暗模式变化时重写
   # ~/.config/gtk-{3,4}.0/dank-colors.css，GTK 主题在运行时 @import 它。
-  # 与 modules/nixos/desktop/dms.nix 的 pywalfox 同步脚本保持一致——
-  # 两边都写绝对路径（本机单用户 xumel）。
+  # 与 Pywalfox 侧同源（DMS 写出的同一份调色板），两边都写绝对路径
+  # （本机单用户 xumel）。
+  # （早先这里写的是「与 modules/nixos/desktop/dms.nix 的 pywalfox 同步脚本保持
+  # 一致」——dms.nix 里并没有那个脚本，注释已过期。）
   userHome = "/home/xumel";
 
   # 主题构建逻辑在 lib/darkly-gtk.nix：编译 sass 主题并把调色板改写成

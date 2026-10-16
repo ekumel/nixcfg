@@ -13,8 +13,8 @@
 #                       MINIMAX_TOKEN_PLAN_KEY 被两方共用同一份密文：
 #                         · DMS 的 AiOverviewControl 插件 —— modules/nixos/desktop/dms.nix
 #                           用 serviceConfig.EnvironmentFile 交给 dms.service；
-#                         · pi / mcode —— modules/home/xumel/secrets.nix 按变量名解析
-#                           后 export 为它们认识的 MINIMAX_CN_API_KEY。
+#                         · opencode2-desktop 及其它认 MINIMAX_CN_API_KEY 的 agent ——
+#                           modules/home/xumel/secrets.nix 按变量名解析后 export。
 #                       #DEEPSEEK_API_KEY 同一插件的 deepseek 适配器用，
 #                         待申请后去掉行首 '#'
 #
@@ -61,7 +61,13 @@
 #      是开机路径，"静默产出空目录"正是这次排查绕了两天的坑，宁可让单元红掉。
 #   2. 清理旧代号时遍历删除所有更小的代号（模块只删上一个小的那一个），
 #      这样即使历史上积累了多个空代号也能收敛。
-{ config, inputs, lib, pkgs, ... }:
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [ inputs.ragenix.nixosModules.default ];
@@ -190,7 +196,9 @@
             chown :keys "$_secretsMountPoint" "$_secretsMountPoint/$_agenix_generation" || \
               echo "[agenix] WARNING: could not set group 'keys' on the mountpoint (ignored)" >&2
           fi
-          ${lib.concatMapStringsSep "\n" (s: "chown ${s.owner}:${s.group} \"$_secretsDir/${s.name}\"") secrets}
+          ${lib.concatMapStringsSep "\n" (
+            s: "chown ${s.owner}:${s.group} \"$_secretsDir/${s.name}\""
+          ) secrets}
         ''
       );
     };

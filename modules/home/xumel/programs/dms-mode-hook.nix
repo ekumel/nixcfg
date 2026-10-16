@@ -6,8 +6,9 @@
 #   - onDankHooksStarted       值：started | restarted
 #
 # ── onDankHooksStarted（一次性写静态项）──────────────────────────────
-# org.gnome.desktop.interface 的静态项（gtk-theme / icon-theme / cursor-theme
-# / cursor-size / 三个字体键）在这里用 gsettings 写进 ~/.config/dconf/user。
+# org.gnome.desktop.interface 的静态项（gtk-theme / cursor-theme /
+# cursor-size / 三个字体键）在这里用 gsettings 写进 ~/.config/dconf/user。
+# icon-theme 不在这：见下方"模式相关项"的注释，交由 DMS 自己按模式切换。
 #
 # 为什么是运行时 gsettings 而不是 home-manager 的声明式配置：
 #   dconf 的用户库是运行时二进制文件，且 DMS 每次启动 / 模式切换都要重写它，
@@ -18,13 +19,16 @@
 #
 # ── onLightModeChanged / onMatugenCompleted（写模式相关项）───────────
 #   - color-scheme（GTK4 / libadwaita 选 gtk.css 还是 gtk-dark.css）
-#   - icon-theme（Colloid ↔ Colloid-dark）
 #   - GTK3 settings.ini: gtk-application-prefer-dark-theme
+#   - qtengine .theme.colorScheme   ← 只写配色，不写 iconTheme
 #
-# ── qtengine 修补 ────────────────────────────────────────────────────
-# DMS 重写 ~/.config/qtengine/config.json 时把 iconTheme 写成
-# "Colloid-Light"（pkgs.colloid-icon-theme 不存在该名），并把 colorScheme
-# 写成当前模式对应文件。钩子在每次模式切换后修正 iconTheme 命名。
+# 注意：iconTheme 现在交给 DMS 自己管（settings.json 的
+# iconThemePerMode + iconTheme{Dark,Light}）。如果 hook 也写 gsettings
+# 的 org.gnome.desktop.interface icon-theme，DMS 会比对失败并提示
+# "图标在 dms 外修改"→ 把 settings.json 重置回 "System Default"，
+# 于是你在 DMS UI 选什么都会被回滚。所以 hook 故意不再写 iconTheme，
+# 只让 qtengine.colorScheme 跟上模式；iconTheme 由用户在 DMS UI 里
+# 切模式后看到 Colloid-Light / Colloid-Dark 自动跟随。
 #
 # ── xsettingsd ───────────────────────────────────────────────────────
 # xsettingsd.conf 不写死 Net/IconThemeName，让它从 dconf 回退读取；
@@ -53,11 +57,6 @@ let
       "org.gnome.desktop.interface"
       "monospace-font-name"
       "Maple Mono NF CN 11"
-    ]
-    [
-      "org.gnome.desktop.interface"
-      "icon-theme"
-      "Colloid"
     ]
     [
       "org.gnome.desktop.interface"
@@ -91,17 +90,16 @@ in
     if [[ "$HOOK" == "onDankHooksStarted" ]]; then
       ${applyStatic}
 
-      # qtengine 静态项（DMS 启动后覆盖一次）
+      # qtengine 静态项（DMS 启动后覆盖一次）。iconTheme 由 DMS 自己
+      # 写（见顶部注释），这里只补齐 colorScheme / 字体 / style。
       QTE="$HOME/.config/qtengine/config.json"
       if [ -f "$QTE" ] && command -v jq >/dev/null 2>&1; then
         tmp=$(mktemp)
-        if jq --arg icon "Colloid-dark" \
-              --arg cs "$HOME/.local/share/color-schemes/DankMatugen.colors" \
+        if jq --arg cs "$HOME/.local/share/color-schemes/DankMatugen.colors" \
               --arg font "LXGW WenKai" \
               --arg mono "Maple Mono NF CN" \
               --arg style "Darkly" \
-              '.theme.iconTheme = $icon
-              | .theme.colorScheme = $cs
+              '.theme.colorScheme = $cs
               | .theme.font.family = $font
               | .theme.fontFixed.family = $mono
               | .theme.style = $style' \
@@ -115,16 +113,16 @@ in
     fi
 
     # ── 模式相关项 ──
+    # iconTheme 故意不写：见本文件头部注释，改由 DMS 自己按 settings.json
+    # 的 iconThemePerMode + iconTheme{Dark,Light} 切换。
     case "$HOOK:$VALUE" in
       onLightModeChanged:light|onMatugenCompleted:light:*)
         SCHEME=prefer-light
-        ICON=Colloid
         CS_FILE=DankMatugenLight.colors
         DARK=false
         ;;
       onLightModeChanged:dark|onMatugenCompleted:dark:*)
         SCHEME=prefer-dark
-        ICON=Colloid-dark
         CS_FILE=DankMatugenDark.colors
         DARK=true
         ;;
@@ -132,7 +130,6 @@ in
     esac
 
     gsettings set org.gnome.desktop.interface color-scheme "$SCHEME"
-    gsettings set org.gnome.desktop.interface icon-theme "$ICON"
 
     # GTK3 settings.ini：确保 [Settings] 段与 prefer-dark 行存在且为当前值。
     # 该文件未被 home-manager 管理（Nix 端不写），hook 独占。
@@ -146,13 +143,14 @@ in
       "$GTK3_INI"
     printf 'gtk-application-prefer-dark-theme=%s\n' "$DARK" >> "$GTK3_INI"
 
-    # qtengine：覆盖 DMS 写的 iconTheme 名 + 指向对应配色文件。
+    # qtengine：把 .theme.colorScheme 指到当前模式的配色文件；iconTheme
+    # 由 DMS 自己按 settings.json 的 iconTheme{Dark,Light} 写入。
     QTE="$HOME/.config/qtengine/config.json"
     CS_PATH="$HOME/.local/share/color-schemes/$CS_FILE"
     if [ -f "$QTE" ] && command -v jq >/dev/null 2>&1; then
       tmp=$(mktemp)
-      if jq --arg icon "$ICON" --arg cs "$CS_PATH" \
-            '.theme.iconTheme = $icon | .theme.colorScheme = $cs' \
+      if jq --arg cs "$CS_PATH" \
+            '.theme.colorScheme = $cs' \
             "$QTE" > "$tmp"; then
         mv "$tmp" "$QTE"
       else

@@ -44,10 +44,6 @@ let
     pkgs: args: import ./hyprland-scroll-overview.nix ({ inherit pkgs; } // args);
 
   # ---- 用户空间小工具 ----
-  # icon-overrides.nix：给 Colloid 主题未收录的应用图标加背景蒙版。
-  # callPackage 风格，pname 必填、其余参数有默认值，由调用方给。
-  icon-overrides = pkgs: args: pkgs.callPackage ./icon-overrides.nix args;
-
   # zed-lsp.nix：Zed 编辑器需要的语言服务器（nil + nixd）。
   # 全部参数都能由 callPackage 从 pkgs 作用域补齐，这里可以就地求值。
   zed-lsp = pkgs: pkgs.callPackage ./zed-lsp.nix { };
@@ -58,7 +54,6 @@ in
     build-deb-fhs
     darkly-gtk
     hyprland-scroll-overview
-    icon-overrides
     zed-lsp
     ;
 }

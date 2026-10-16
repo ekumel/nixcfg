@@ -31,4 +31,9 @@
   # 激活时遇到已存在的真实文件先备份为 *.hm-backup（例如 DMS 运行时
   # 重写过的 ~/.config/qtengine/config.json），不会直接删除。
   home-manager.backupFileExtension = "hm-backup";
+
+  # 旧备份已存在时直接覆盖。典型场景：DMS / qtengine 这种"home-manager
+  # 先建软链 → 运行时程序改成实文件 → 下次 rebuild"的链路，每个备份
+  # 位置只会留下一份最近的快照就够了，没必要手动 rm。
+  home-manager.overwriteBackup = true;
 }

@@ -7,6 +7,7 @@
     ./treesitter.nix
     ./ui.nix
     ./ui-extra.nix
+    ./avante.nix
     ./editing.nix
     ./telescope.nix
     ./completion.nix
@@ -41,6 +42,11 @@
     telescope-fzf-native-nvim
     # image.nvim：改用 extraPlugins + 守卫式 setup（见 ./image.nix，避免 headless 下中断 init）
     image-nvim
+    # avante.nvim：nixvim 当前 pin 的版本没有 plugins.avante 模块，只能走
+    # extraPlugins。该 derivation 已自带 rustPlatform 编译好的 libavante_*
+    # 原生库和 plenary/nui/img-clip/dressing/treesitter 依赖。
+    # 配置见 ./avante.nix。
+    avante-nvim
   ];
 
   # 编辑器用到的外部可执行文件（进 wrapped nvim 的 PATH）：

@@ -8,6 +8,8 @@
     bottom
     brightnessctl # 亮度键（见 programs/hyprland.nix 键位）
 
+    yazi # 终端文件管理器（主题由 programs/matugen 生成 ~/.config/yazi/theme.toml）
+
     # Rust 工具链：改用 nixpkgs 的 rustc/cargo/rust-analyzer。
     # 不再用 rustup：NixOS 上 rustup 下载的工具链依赖 /lib64/ld-linux 解释器，
     # 未启用 programs.nix-ld 时无法运行（本机没有 nix-ld，rustup 里也没有工具链）。

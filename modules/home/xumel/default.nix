@@ -20,7 +20,6 @@
     ./programs/matugen
     ./programs/nixvim
     ./programs/nodejs.nix
-    ./programs/pi-agent.nix
     ./programs/qt.nix
     ./programs/xsettingsd.nix
 

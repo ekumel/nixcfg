@@ -11,12 +11,22 @@
 
     auto-optimise-store = true;
 
-    # Hyprland 的 Cachix 缓存。Hyprland flake（main）不由 Hydra 构建，
-    # 不在 cache.nixos.org 里；上游用该缓存发布合成器及其依赖的预构建产物。
+# Hyprland 的 Cachix 缓存。Hyprland flake（main）不由 Hydra 构建，
+    # 不在 cache.nixos.org 里；上游用该缓存发布合成器及其依赖的预编译产物。
     # 见 flake.nix 的 hyprland input 与 wiki.hypr.land/nix/cachix。
-    extra-substituters = [ "https://hyprland.cachix.org" ];
+    extra-substituters = [
+      "https://hyprland.cachix.org"
+      # denial cachix：denialwm/denial 上游自己跑 CI 把 Nix 产物（合成器 +
+      # Flutter engine raw 包 + 适配步骤）推到 denial.cachix.org。dev /
+      # main 的验证构建都发布，命中后免去一次重编 engine（48+ GiB 临时
+      # store 空间的本地构建路径，参见 packaging/nixos/README.md）。
+      # nixConfig 写在 denial 的 flake.nix 里——但 Nix 不会把 input flake
+      # 的 nixConfig 套到消费方，所以这里必须再写一份。
+      "https://denial.cachix.org"
+    ];
     extra-trusted-public-keys = [
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+      "denial.cachix.org-1:wd8YTnvPmugFrtdMJWtR1XdVknR3/g2nmBJkT+vAruo="
     ];
     # 非 root 用户在 wheel 组时必须被信任，否则上面 client 指定的
     # substituters/keys 会被忽略（restricted setting）。

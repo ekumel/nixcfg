@@ -753,5 +753,133 @@ in
       action.__raw = fn "require('rustaceanvim.run_split').run('cargo doc')";
       options.desc = "cargo doc";
     }
+
+    # ============================================================
+    # Avante（AI 编程助手，侧边栏在左）
+    # ============================================================
+    # 全部走 avante 自己在 setup() 里注册的 `<Plug>` 映射（上游 init.lua:116-163
+    # 无条件注册，与 behaviour.auto_set_keymaps 无关），而不是直接调
+    # require("avante.api")。这样做的好处：
+    #   - 键位和上游文档一一对应，将来换 provider / 版本不用改这里；
+    #   - avante 的 auto_set_keymaps 用 Utils.safe_keymap_set（上游 init.lua:182），
+    #     不会覆盖已存在的映射，所以下面这套是最终生效的，which-key 也能正确显示。
+    #
+    # 刻意不映射的一处：<leader>ac（files.add_current）。它没有对应的 <Plug>，
+    # 是 avante 在侧边栏 mount 时自己设的（上游 sidebar.lua:1437-1452），
+    # 这里再声明一份既指向不存在的 Plug、又会抢掉 avante 的实现。
+    #
+    # 键位沿用 avante 上游默认（<leader>a 前缀），不要改字母，否则
+    # plugins/avante.nix 里 Config.mappings.* 的语义就对不上了。
+    {
+      mode = [
+        "n"
+        "v"
+      ];
+      key = "<leader>aa";
+      action = "<Plug>(AvanteAsk)";
+      options.desc = "Avante: ask (new sidebar)";
+    }
+    {
+      mode = [
+        "n"
+        "v"
+      ];
+      key = "<leader>an";
+      action = "<Plug>(AvanteAskNew)";
+      options.desc = "Avante: new ask";
+    }
+    {
+      mode = [
+        "n"
+        "v"
+      ];
+      key = "<leader>az";
+      action = "<Plug>(AvanteZenMode)";
+      options.desc = "Avante: zen mode";
+    }
+    {
+      mode = "v";
+      key = "<leader>ae";
+      action = "<Plug>(AvanteEdit)";
+      options.desc = "Avante: edit selection";
+    }
+    {
+      mode = "n";
+      key = "<leader>ar";
+      action = "<Plug>(AvanteRefresh)";
+      options.desc = "Avante: refresh";
+    }
+    {
+      mode = "n";
+      key = "<leader>af";
+      action = "<Plug>(AvanteFocus)";
+      options.desc = "Avante: focus sidebar";
+    }
+    {
+      mode = "n";
+      key = "<leader>aS";
+      action = "<Plug>(AvanteStop)";
+      options.desc = "Avante: stop request";
+    }
+    {
+      mode = "n";
+      key = "<leader>at";
+      action = "<Plug>(AvanteToggle)";
+      options.desc = "Avante: toggle sidebar";
+    }
+    {
+      mode = "n";
+      key = "<leader>ad";
+      action = "<Plug>(AvanteToggleDebug)";
+      options.desc = "Avante: toggle debug";
+    }
+    {
+      mode = "n";
+      key = "<leader>aC";
+      action = "<Plug>(AvanteToggleSelection)";
+      options.desc = "Avante: toggle selection mode";
+    }
+    {
+      mode = "n";
+      key = "<leader>as";
+      action = "<Plug>(AvanteToggleSuggestion)";
+      options.desc = "Avante: toggle suggestion";
+    }
+    {
+      mode = "n";
+      key = "<leader>aR";
+      action = "<Plug>(AvanteShowRepoMap)";
+      options.desc = "Avante: show repo map";
+    }
+    {
+      mode = "n";
+      key = "<leader>aB";
+      action = "<Plug>(AvanteAddAllBuffers)";
+      options.desc = "Avante: add all buffers";
+    }
+    {
+      mode = "n";
+      key = "<leader>a?";
+      action = "<Plug>(AvanteSelectModel)";
+      options.desc = "Avante: select model";
+    }
+    {
+      mode = "n";
+      key = "<leader>ah";
+      action = "<Plug>(AvanteSelectHistory)";
+      options.desc = "Avante: select history";
+    }
+    {
+      mode = "n";
+      key = "<leader>am";
+      action = "<Plug>(AvanteSelectACPMode)";
+      options.desc = "Avante: select ACP agent mode";
+    }
+    {
+      mode = "n";
+      key = "<leader>aM";
+      action = "<Plug>(AvanteSelectACPModel)";
+      options.desc = "Avante: select ACP agent model";
+    }
   ];
 }

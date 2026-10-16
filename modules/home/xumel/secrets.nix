@@ -51,17 +51,14 @@
   # 变量名取出 MINIMAX_TOKEN_PLAN_KEY 那一行。
   #
   # 消费方都原生认 MINIMAX_CN_API_KEY：
-  #   pi        —— docs/providers.md 列出 MiniMax (China) = MINIMAX_CN_API_KEY；
-  #                自定义 provider 由 models.json 的 apiKey = "$MINIMAX_CN_API_KEY"
-  #                插值引用（见 modules/home/xumel/programs/pi-agent.nix）
-  #   mcode     —— 包内支持同名变量
-  #   其它 agent —— 只要认这个变量名就零配置接入
+  #   - opencode2-desktop（numtide/llm-agents.nix 出品）
+  #   - 其它 agent —— 只要认这个变量名就零配置接入
   #
   # 为什么不用 home.sessionVariables：它把值用 shell 单引号转义后写进
   # profile.d，命令替换 $(cat ...) 会被当字面量、不会执行。
   #
   # 为什么不用 home.file 软链到某个 agent 的凭据文件：那样密文就得内嵌
-  # agent 私有格式，与 agent 版本耦合（pi 自己的 auth.json 就变过格式），
+  # agent 私有格式，与 agent 版本耦合（旧版 pi 的 auth.json 就变过格式），
   # 且多一个 agent 就要多一份密文。裸 key + 环境变量与消费方解耦。
   #
   # 为什么只覆盖 fish、不管 bash（2026-10 修正）：
@@ -72,10 +69,10 @@
   #        这个 derivation 的 postBuild，属于构建期钩子，不是登录时的 profile。
   #        实测该 generation 的 etc/profile.d/ 下只有 hm-session-vars.{fish,sh}
   #        两个文件（来自 home.sessionVariables），这段代码不在其中。
-  #     2. 即便在，也没人 source 它：本机没有 ~/.bash_profile 也没有 ~/.profile，
+  #     2. 即便在，也没人 source 它：本机没有 ~/.bash_profile 也没有 ~/.profile,
   #        /etc/profile 不引用 nix-profile 的 profile.d。
   #   实测 `bash -l` 与 `bash -l -i` 都拿不到 MINIMAX_CN_API_KEY。
-  #   实际登录 shell 是 bash（见 /etc/passwd），但交互式用的是 fish，pi / mcode
+  #   实际登录 shell 是 bash（见 /etc/passwd），但交互式用的是 fish，agent
   #   从 fish 起来就能拿到 key，所以 bash 侧无实际损失，直接删掉而不是留死代码。
   #   以后若真要支持 bash，得先加一个真会被 source 的入口文件，那是另一件事。
   #

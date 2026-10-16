@@ -5,7 +5,7 @@
 # 以及配色（内置 matugen 动态主题）。
 #
 # 配色：`enableDynamicTheming` 会安装 matugen 并由 DMS 在壁纸/主题变化时
-# 生成 GTK / Qt(qtengine) / kitty / Zen / VSCode 等主题文件。
+# 生成 GTK / Qt(qtengine) / kitty / VSCode 等主题文件。
 #
 # 启动方式：`systemd.enable` 生成 dms.service，绑定 graphical-session.target；
 # 用户会话由 Hyprland 启动的 hyprland-session.target 拉起该目标
@@ -22,7 +22,12 @@
 # 等于把 key 泄进系统配置。EnvironmentFile 只往 unit 里写**路径**，
 # 明文留在 ragenix 的 tmpfs 文件里（/run/agenix/ai-env，见
 # modules/nixos/user-secrets.nix），不进 store、不落 /etc。
-{ config, inputs, pkgs, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
@@ -51,7 +56,7 @@
     # 区域端点不是密文，留在配置里而不是塞进密文。
     #
     # 必须显式指定：插件的 MiniMax 适配器默认打 https://api.minimax.io，
-    # 而本机这把 key 是国内站的（pi 侧同样用 api.minimax.cn），
+    # 而本机这把 key 是国内站的（其它 agent 也走 api.minimax.cn），
     # 在国际域名会被判 base_resp 2049 "invalid api key"。
     # 该变量同时重定向 /v1/models 与 /v1/token_plan/remains 两个只读端点。
     Environment = "MINIMAX_API_BASE=https://api.minimax.cn";

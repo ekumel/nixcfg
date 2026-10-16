@@ -244,6 +244,62 @@ local function ufo(p)
   h("UfoPreviewThumb", nil, p.muted)
 end
 
+-- avante（AI 侧边栏）
+--
+-- avante 上游对绝大多数自己的高亮组用的是**写死的深色 hex**
+-- （lua/avante/highlights.lua 里那套 #1e222a / #98c379 / #abb2bf），
+-- 不跟随当前配色。所以这里逐组覆盖成 DMS 调色板，侧边栏才会跟着壁纸走。
+-- 只有少数组用了 fg_link / bg_link 链到 NormalFloat 之类，那种天然就跟着走，
+-- 但为了一致（以及 DMS 模式下 NormalFloat 本身就是 DMS 底色）这里仍显式写一遍。
+--
+-- setup 的执行顺序见 plugins/avante.nix：avante 先 setup（写死深色），
+-- theme.nix 的 apply_colors() 后跑并调到这里，所以这些覆盖一定赢。
+local function avante(p)
+  -- 标题条（侧边栏顶部的 header）
+  h("AvanteTitle", p.bg, p.primary)
+  h("AvanteReversedTitle", p.primary, p.bg)
+  h("AvanteSubtitle", p.bg, p.secondary)
+  h("AvanteReversedSubtitle", p.secondary, p.bg)
+  h("AvanteThirdTitle", p.fg, p.bg_high)
+  h("AvanteReversedThirdTitle", p.bg, p.bg_high)
+
+  -- 侧边栏本体
+  h("AvanteSidebarNormal", p.fg, p.bg_mid)
+  h("AvanteSidebarWinSeparator", p.muted, p.bg_mid)
+  h("AvanteSidebarWinHorizontalSeparator", p.muted, p.bg_mid)
+  h("AvanteReversedNormal", p.bg, p.fg)
+
+  -- 输入框
+  h("AvantePromptInput", p.fg, p.bg_high)
+  h("AvantePromptInputBorder", p.muted, p.bg_high)
+
+  -- 提示 / 注释
+  h("AvantePopupHint", p.muted, p.bg_mid)
+  h("AvanteInlineHint", p.secondary, nil, { italic = true })
+  h("AvanteCommentFg", p.muted, nil)
+  h("AvanteSuggestion", p.muted, nil, { italic = true })
+  h("AvanteAnnotation", p.muted, nil)
+
+  -- diff 冲突块
+  h("AvanteConflictCurrent", p.bg, p.tertiary)
+  h("AvanteConflictIncoming", p.bg, p.secondary)
+  h("AvanteConflictCurrentLabel", p.on_tertiary_container, p.tertiary)
+  h("AvanteConflictIncomingLabel", p.on_secondary_container, p.secondary)
+
+  -- 增删标记
+  h("AvanteToBeDeleted", p.error, nil, { strikethrough = true })
+  h("AvanteToBeDeletedWithoutStrikethrough", p.error, p.error_container)
+
+  -- 确认 / 工具批准按钮
+  h("AvanteConfirmTitle", p.bg, p.error)
+  h("AvanteButtonDefault", p.fg, p.bg_high)
+  h("AvanteButtonDefaultHover", p.bg, p.secondary)
+  h("AvanteButtonPrimary", p.on_primary, p.primary)
+  h("AvanteButtonPrimaryHover", p.on_primary, p.primary, { bold = true })
+  h("AvanteButtonDanger", p.on_error, p.error)
+  h("AvanteButtonDangerHover", p.on_error, p.error, { bold = true })
+end
+
 ---@param p table dms_colors.palette() 的返回值
 function M.apply(p)
   if type(p) ~= "table" then
@@ -257,6 +313,7 @@ function M.apply(p)
   notify(p)
   dashboard(p)
   ufo(p)
+  avante(p)
 end
 
 return M

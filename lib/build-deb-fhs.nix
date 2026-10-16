@@ -54,6 +54,14 @@
   # .desktop 文件名（相对 deb 内的 usr/share/applications/）。
   # 传 null 表示该 .deb 不带 .desktop，跳过 Exec 改写。
   desktopFile ? null,
+  # 安装时的文件名（= 对外的 desktop ID）。默认与上游同名；包方需要换 ID
+  # 时在这里改，常见原因见下方注释——某些应用启动后会自己往用户目录写一份
+  # 同名 .desktop（带 NoDisplay=true）把 Nix 装的这份遮蔽掉。
+  desktopFileName ? desktopFile,
+  # 补齐 Categories 字段。桌面环境对「Categories 为空」的条目会直接丢弃
+  # （desktop entry 规范要求至少一个合法取值），上游漏写时用这里补。
+  # 传入的是**完整取值**（含结尾分号），如 "Network;FileTransfer;"。
+  desktopCategories ? null,
   # .desktop 里 Exec= 的旧串，替换为 execTo。
   # 典型值是 deb 里的绝对路径，可能带 --no-sandbox 之类的 flag。
   execFrom ? null,
@@ -71,7 +79,12 @@
 }:
 
 let
-  inherit (pkgs) binutils;
+  inherit (pkgs)
+    binutils
+    gzip
+    xz
+    zstd
+    ;
 
   # ---- 第一步：解包 .deb ----
   #
@@ -84,7 +97,18 @@ let
   unpacked = stdenvNoCC.mkDerivation {
     inherit pname version src;
 
-    nativeBuildInputs = [ binutils ];
+    # zstd 不能省：GNU tar 只「嗅探」压缩格式，不自带解压器——识别出
+    # zstd 之后会 exec 外部的 zstd 程序。缺它时 installPhase 报
+    # "tar (child): zstd: Cannot exec: No such file or directory"。
+    # 触发过这个坑的是 FluxDown（data.tar.zst）；此前 orca / baidunetdisk
+    # 等包的 data.tar 是 .xz / .gz，走的是 tar 内建支持，才一直没暴露。
+    # xz / gzip 同理由 tar 内部处理，但放进 PATH 也无害，故一并显式列出。
+    nativeBuildInputs = [
+      binutils
+      zstd
+      xz
+      gzip
+    ];
 
     dontUnpack = true;
     dontConfigure = true;
@@ -124,9 +148,32 @@ let
       ''
         if [ -f "${unpacked}/usr/share/applications/${desktopFile}" ]; then
           cp "${unpacked}/usr/share/applications/${desktopFile}" \
-            "$out/share/applications/${desktopFile}"
-          substituteInPlace "$out/share/applications/${desktopFile}" \
+            "$out/share/applications/${desktopFileName}"
+          substituteInPlace "$out/share/applications/${desktopFileName}" \
             --replace-fail "${execFrom}" "${execTo}"
+        fi
+      '';
+
+  # Categories 补齐是**整块**可选拼接（而不是在 installDesktop 里插一行
+  # optionalString）：后者即使返回空串也会留下一个只含空格的行，改变
+  # installPhase 脚本文本 → 所有走本流程的包（orca / baidunetdisk…）都会
+  # 因为一个纯空白差异被无谓地重新构建。整块拼接在不启用时是真正的空串。
+  #
+  # 用 sed 匹配整行而不是 substituteInPlace 替换 "Categories=" 前缀：
+  # 前缀替换只在上游**原值为空**时正确（已下架的 rayburst 就是这种，空值
+  # 会让桌面环境静默丢弃整个条目）；上游写了非法非空值时，替换前缀会把旧值
+  # 留在后面拼成 `Categories=Network;...;net`。分隔符用 | 而不是 /：取值
+  # 本身含 `;`（列表分隔符）。
+  # 注意 fluxdown 的上游值是合法的 `Network;FileTransfer;`，所以它**不传**
+  # desktopCategories——这个开关是补救手段，不是每个包都要开。
+  installCategories =
+    if desktopCategories == null then
+      ""
+    else
+      ''
+        if [ -f "$out/share/applications/${desktopFileName}" ]; then
+          sed -i "s|^Categories=.*$|Categories=${desktopCategories}|" \
+            "$out/share/applications/${desktopFileName}"
         fi
       '';
 
@@ -163,6 +210,7 @@ buildFHSEnv {
     mkdir -p "$out/share/icons"
   ''
   + installDesktop
+  + installCategories
   + installIcons;
 
   inherit passthru;

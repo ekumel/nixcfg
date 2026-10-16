@@ -11,6 +11,7 @@
   pkgs,
   perSystem,
   flake,
+  inputs,
   ...
 }:
 
@@ -22,9 +23,15 @@
     perSystem.self.genoffice # GenOffice：开源 AI Office 套件（官方 AppImage）
     perSystem.self.goquark # GoQuark：夸克网盘 CLI / TUI / MCP（单文件 Go 静态二进制）
     perSystem.self.baidunetdisk # 百度网盘 Linux 客户端（unfree，官方 .deb，FHS 封装）
-    perSystem.self.mcode # MiniMax Code：终端编码代理 CLI（npm @minimax-ai/code）
-    perSystem.self.pi-agent # pi：开源 coding agent CLI（npm @earendil-works/pi-coding-agent）
     perSystem.self.orca # Orca：AI 编排器（Electron，GitHub release .deb，FHS 封装）
+    perSystem.self.voicefox # voicefox：Rust + ratatui + libmpv 终端音乐播放器（预编译 zip + patchelf 补 libmpv）
+    perSystem.self.fluxdown # FluxDown：开源多协议下载器（Rust + GPUI，接管 magnet / BT / ED2K，带 MCP）
+    perSystem.self.any-listen # Any Listen：私有音乐播放服务桌面端（Electron，接替 splayer-next）
+
+    # llm-agents.nix 上游打包的 agent 集合：每日自动重锁，本机只引用
+    # 不再维护 npmDepsHash。原本自维护的 mcode（@minimax-ai/code）与
+    # pi-agent（@earendil-works/pi-coding-agent）均已下线。
+    inputs.llm-agents.packages.${pkgs.system}.opencode2-desktop # OpenCode 2 桌面客户端（numtide/llm-agents.nix）
   ]
   # Zed 配套 LSP：集中在 lib/zed-lsp.nix，避免散落后被遗忘。
   ++ flake.lib.zed-lsp pkgs;

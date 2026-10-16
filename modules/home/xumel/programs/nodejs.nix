@@ -3,8 +3,9 @@
 # 为什么装在 home.packages 而不是系统层 environment.systemPackages：
 #   与 programs/gtk.nix、programs/qt.nix 同一分工——系统层只提供运行环境，
 #   用户自己用的开发工具链归用户空间。仓库里 nodejs 此前只出现在
-#   packages/mcode.nix / packages/pi-agent.nix 的 nodejs = pkgs.nodejs_22
-#   （构建期）与 devshell.nix（nix-shell 专用），系统 profile 里没有 node。
+#   mcode / pi-agent 两个 npm CLI 包（已下线，改走 numtide/llm-agents.nix
+#   上游打包）的 nodejs = pkgs.nodejs_22（构建期）与 devshell.nix
+#   （nix-shell 专用），系统 profile 里没有 node。
 #
 # ── 为什么 pnpm 直接取 nixpkgs 的 pkgs.pnpm ─────────────────────────
 #   1. 这版 nixpkgs 已移除 nodePackages（求值会直接报 "nodePackages has
@@ -18,12 +19,11 @@
 #   4. 不用 npm install -g pnpm：装到用户目录不受 Nix 管理，不进 GC roots，
 #      升级还得手动重装。
 #
-# ── nodejs 版本为什么用默认的 24 而不是 nodejs_22 ───────────────────
-#   packages/mcode.nix 钉 nodejs_22 是为了绕开 better-sqlite3 在
+# ── nodejs 版本为什么用默认的 24 ─────────────────────────
+#   历史上 packages/mcode.nix 钉 nodejs_22 是为了绕开 better-sqlite3 在
 #   Node 24.20.0 + 中文输入下的 V8 Isolate SIGABRT——那是 mcode 那个
-#   native 模块的特定组合，不是 Node 24 本身的问题。pnpm 是纯 Rust 二进制，
-#   没有 native 模块，不受该 bug 影响；而 pkgs.pnpm 本来就是对着
-#   pkgs.nodejs（当前 24.20.0）构建的，两者同版本最省心。
+#   native 模块的特定组合，不是 Node 24 本身的问题。mcode 已下线，
+#   现在 home 里没有 npm CLI 打包任务，保持默认的 pkgs.nodejs 即可。
 #   真要给某个项目钉 Node 22，用 nix-shell -p nodejs_22，不要改这里。
 {
   pkgs,

@@ -9,7 +9,6 @@
   imports = [
     ./cli.nix
     ./desktop-apps.nix
-    ./icon-annotated.nix
     ./third-party.nix
     ./browsers.nix
     ./gaming.nix

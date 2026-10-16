@@ -26,5 +26,4 @@
       TerminalApplication=kitty
     '';
   };
-
 }

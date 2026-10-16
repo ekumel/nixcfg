@@ -3,8 +3,11 @@
 # 修改 packages/*.nix 的 version 字面量、`nix flake lock` 重锁。
 #
 # 用法：
-#   ./scripts/update-third-party.sh              # 全部 9 个 input 都更新
+#   ./scripts/update-third-party.sh              # 全部 URL 类 input 都更新
 #   ./scripts/update-third-party.sh kelivo zedg  # 仅更新指定 input
+#   ./scripts/update-third-party.sh voicefox     # 仅 voicefox（终端音乐播放器）
+#   ./scripts/update-third-party.sh fluxdown     # 仅 fluxdown（下载器）
+#   ./scripts/update-third-party.sh any-listen   # 仅 any-listen（音乐播放服务）
 #   ./scripts/update-third-party.sh wechat       # 仅 wechat（URL 不变，只刷
 #                                                # narHash + version）
 #
@@ -170,193 +173,6 @@ updater_prismlauncher_offline_account() {
 # 改 flake.nix 的 baidunetdisk url + packages/baidunetdisk.nix 的 version
 # 字面量后跑 `nix flake lock --update-input baidunetdisk`。
 
-# mcode：npm registry API（不是 GitHub Releases）。
-#   - dist-tags.latest 拿最新 semver 版本号（无 v 前缀）；
-#   - versions[<ver>].dist.tarball 拿 tarball URL；
-#   - npm tarball 不带 package-lock.json，buildNpmPackage 的
-#     prefetch-npm-deps 会找不到锁文件；本 updater 会同时跑
-#     `npm install --package-lock-only` 重生 packages/mcode-package-lock.json，
-#     再用 prefetch-npm-deps + `nix hash path` 算出 npmDepsHash，
-#     直接 perl 写回 packages/mcode.nix。
-# 依赖 host 上有 nix-shell（提取 npm / prefetch-npm-deps）。
-# 把以上额外动作括在一个函数里：主流程照样处理 flake.nix url
-# 字段与 packages/mcode.nix version 字面量（idempotent），然后
-# 我们在主流程跑完后重新锁 mcode 即可。
-updater_mcode() {
-  local pkg_json version tarball_url npm_deps_hash tmp pkg_root
-
-  # npm registry 偶尔 Empty reply / SSL EOF（见 curl error 52 / 56），
-  # 这里给探测 API 与拉 tarball 各加 retry 3 次（指数退避 1/2/4s）。
-  # 这是把 npm 抓 npm registry 的常见 transient，与下方 prefetch 同源。
-  local attempt
-  for attempt in 1 2 3; do
-    pkg_json=$(curl "${CURL_BASE[@]}" "https://registry.npmjs.org/@minimax-ai/code") && [ -n "$pkg_json" ] && break
-    echo "mcode: npm registry API 探测失败（重试 $attempt/3）" >&2
-    sleep $((attempt * 1))
-  done
-  [ -n "$pkg_json" ] || { echo "npm registry 返回空" >&2; return 1; }
-  version=$(printf '%s' "$pkg_json" | jq -r '.["dist-tags"].latest // empty')
-  [ -n "$version" ] || { echo "npm registry 无 dist-tags.latest" >&2; return 1; }
-  tarball_url=$(printf '%s' "$pkg_json" | jq -r ".versions.\"${version}\".dist.tarball // empty")
-  [ -n "$tarball_url" ] || { echo "npm registry 无 tarball for ${version}" >&2; return 1; }
-
-  tmp=$(mktemp -d)
-  pkg_root="$tmp/package"
-  # 拉 tarball + 解压。npm tarball 解出来根目录是 package/。
-  for attempt in 1 2 3; do
-    if curl -fsSL -o "$tmp/mcode.tgz" "$tarball_url"; then
-      break
-    fi
-    echo "mcode: 下载 tarball 失败（重试 $attempt/3）: $tarball_url" >&2
-    sleep $((attempt * 1))
-  done
-  if [ ! -s "$tmp/mcode.tgz" ]; then
-    echo "下载 npm tarball 失败: $tarball_url" >&2
-    rm -rf "$tmp"; return 1
-  fi
-  if ! tar -xzf "$tmp/mcode.tgz" -C "$tmp"; then
-    echo "解 tarball 失败" >&2
-    rm -rf "$tmp"; return 1
-  fi
-
-  # 生成新 lockfile 并覆盖仓库里的 vendored 版本。
-  # --omit=dev / --ignore-scripts / --registry=public 与 packages/mcode.nix
-  # 的 buildNpmPackage 设置一致，避免 lockfile 锁住 devDependencies
-  # 或被 .npmrc 引入私有 registry 包。
-  # nix-shell --run 不接受位置参数（-- 后的所有东西都不是 command 的），
-  # 必须用 env var 传 pkg_root。
-  export PKG_ROOT="$pkg_root"
-  if ! nix-shell -p nodejs_24 --run '
-    set -e
-    cd "$PKG_ROOT"
-    npm install --package-lock-only --omit=dev --ignore-scripts \
-      --registry=https://registry.npmjs.org/ >/dev/null
-  ' >/dev/null 2>&1; then
-    echo "npm install --package-lock-only 失败（网络问题？试试重跑）" >&2
-    rm -rf "$tmp"; return 1
-  fi
-  cp "$pkg_root/package-lock.json" "$SCRIPT_DIR/../packages/mcode-package-lock.json"
-
-  # prefetch-npm-deps 抓所有 deps 到 outdir，nix hash path 算 hash
-  # （与 buildNpmPackage 内部 prefetch-npm-deps 走同一份货）。
-  # prefetch 也走 npm registry；同样 retry。同样用 env var 传参。
-  # 关键：retry 前先清空 deps_out，否则上次失败的 cacache 残留导致
-  # prefetch 自带 retry 跳过去，hash 与 buildNpmPackage 期望的不一致。
-  local deps_out="$tmp/deps"
-  export LOCKFILE="$pkg_root/package-lock.json"
-  export DEPS_OUT="$deps_out"
-  for attempt in 1 2 3; do
-    rm -rf "$deps_out"
-    if nix-shell -p prefetch-npm-deps --run '
-      prefetch-npm-deps "$LOCKFILE" "$DEPS_OUT"
-    ' >/dev/null 2>&1; then
-      break
-    fi
-    echo "mcode: prefetch-npm-deps 失败（重试 $attempt/3）" >&2
-    sleep $((attempt * 1))
-  done
-  if [ ! -d "$deps_out/_cacache" ]; then
-    echo "prefetch-npm-deps 失败（某个 npm 镜像拉不到？重试）" >&2
-    rm -rf "$tmp"; return 1
-  fi
-  # nix hash path 需要 cd 到 / 否则 path 解析问题。
-  npm_deps_hash=$(cd / && "${NIX[@]}" hash path --type sha256 --base64 "$deps_out")
-  rm -rf "$tmp"
-  [ -n "$npm_deps_hash" ] || { echo "nix hash path 返回空" >&2; return 1; }
-
-  # 把 npmDepsHash 写回 packages/mcode.nix（perl 锁定第一个匹配替换）。
-  # 这里的 placeholder 是字面量 `npmDepsHash = "<old>"`；为了不依赖
-  # 旧值，用 perl -0777 锁定到第一个匹配进行替换（一个 file 里只有一个）。
-  perl -0777 -i -pe "s|(npmDepsHash = \")[^\"]*(\")|\$1sha256-${npm_deps_hash}\$2|" \
-    "$SCRIPT_DIR/../packages/mcode.nix"
-
-  RESULTS+=("mcode"$'\t'"${tarball_url}"$'\t'"${version}")
-}
-
-# pi-agent：npm registry API，与 mcode 同款（同一类 npm CLI tarball，
-# 同一类 buildNpmPackage）。区别只在包名、lockfile 路径、nix 文件名：
-#   - 包名：@earendil-works/pi-coding-agent
-#   - tarball URL 模板：https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-<ver>.tgz
-#   - lockfile 路径：packages/pi-agent-package-lock.json
-#   - nix 文件：packages/pi-agent.nix
-# 复用 mcode 的 retry 策略：npm registry 偶尔 Empty reply / SSL EOF。
-updater_pi_agent() {
-  local pkg_json version tarball_url npm_deps_hash tmp pkg_root
-
-  for attempt in 1 2 3; do
-    pkg_json=$(curl "${CURL_BASE[@]}" "https://registry.npmjs.org/@earendil-works/pi-coding-agent") && [ -n "$pkg_json" ] && break
-    echo "pi-agent: npm registry API 探测失败（重试 $attempt/3）" >&2
-    sleep $((attempt * 1))
-  done
-  [ -n "$pkg_json" ] || { echo "npm registry 返回空" >&2; return 1; }
-  version=$(printf '%s' "$pkg_json" | jq -r '.["dist-tags"].latest // empty')
-  [ -n "$version" ] || { echo "npm registry 无 dist-tags.latest" >&2; return 1; }
-  tarball_url=$(printf '%s' "$pkg_json" | jq -r ".versions.\"${version}\".dist.tarball // empty")
-  [ -n "$tarball_url" ] || { echo "npm registry 无 tarball for ${version}" >&2; return 1; }
-
-  tmp=$(mktemp -d)
-  pkg_root="$tmp/package"
-  for attempt in 1 2 3; do
-    if curl -fsSL -o "$tmp/pi-agent.tgz" "$tarball_url"; then
-      break
-    fi
-    echo "pi-agent: 下载 tarball 失败（重试 $attempt/3）: $tarball_url" >&2
-    sleep $((attempt * 1))
-  done
-  if [ ! -s "$tmp/pi-agent.tgz" ]; then
-    echo "下载 npm tarball 失败: $tarball_url" >&2
-    rm -rf "$tmp"; return 1
-  fi
-  if ! tar -xzf "$tmp/pi-agent.tgz" -C "$tmp"; then
-    echo "解 tarball 失败" >&2
-    rm -rf "$tmp"; return 1
-  fi
-
-  # 跟 mcode 同款：tarball 自带 npm-shrinkwrap.json 但缺 integrity
-  # （npm 11+ 在 workspace 风格下会省略 @earendil-works/* 子包的
-  # integrity，prefetch-npm-deps 拒绝），所以跑
-  # npm install --package-lock-only 把每个 dep 的 integrity 补齐。
-  # 注意：保留 tarball 里的 npm-shrinkwrap.json（不删），npm 看到
-  # 两者并存会优先用 shrinkwrap 但同时生成 package-lock.json 副本。
-  export PKG_ROOT="$pkg_root"
-  if ! nix-shell -p nodejs_24 --run '
-    set -e
-    cd "$PKG_ROOT"
-    npm install --package-lock-only --omit=dev --ignore-scripts \
-      --registry=https://registry.npmjs.org/ >/dev/null
-  ' >/dev/null 2>&1; then
-    echo "npm install --package-lock-only 失败（网络问题？试试重跑）" >&2
-    rm -rf "$tmp"; return 1
-  fi
-  cp "$pkg_root/package-lock.json" "$SCRIPT_DIR/../packages/pi-agent-package-lock.json"
-
-  local deps_out="$tmp/deps"
-  export LOCKFILE="$pkg_root/package-lock.json"
-  export DEPS_OUT="$deps_out"
-  for attempt in 1 2 3; do
-    rm -rf "$deps_out"
-    if nix-shell -p prefetch-npm-deps --run '
-      prefetch-npm-deps "$LOCKFILE" "$DEPS_OUT"
-    ' >/dev/null 2>&1; then
-      break
-    fi
-    echo "pi-agent: prefetch-npm-deps 失败（重试 $attempt/3）" >&2
-    sleep $((attempt * 1))
-  done
-  if [ ! -d "$deps_out/_cacache" ]; then
-    echo "prefetch-npm-deps 失败（某个 npm 镜像拉不到？重试）" >&2
-    rm -rf "$tmp"; return 1
-  fi
-  npm_deps_hash=$(cd / && "${NIX[@]}" hash path --type sha256 --base64 "$deps_out")
-  rm -rf "$tmp"
-  [ -n "$npm_deps_hash" ] || { echo "nix hash path 返回空" >&2; return 1; }
-
-  perl -0777 -i -pe "s|(npmDepsHash = \")[^\"]*(\")|\$1sha256-${npm_deps_hash}\$2|" \
-    "$SCRIPT_DIR/../packages/pi-agent.nix"
-
-  RESULTS+=("pi-agent"$'\t'"${tarball_url}"$'\t'"${version}")
-}
-
 # orca：electron-builder 发布的 latest-linux.yml 元数据。
 #   不同于 GitHub Releases API，orca 用 electron-builder 的
 #   auto-update 协议——latest-linux.yml 是 YAML：
@@ -415,6 +231,62 @@ updater_dwproton() {
   RESULTS+=("dwproton"$'\t'"${url}"$'\t'"${version}")
 }
 
+# voicefox：emoeem/voicefox，终端音乐播放器（TUI，Rust + ratatui +
+# libmpv）。GitHub release 发的是预编译 zip，asset 按架构命名：
+#   voicefox-linux-x86_64.zip / voicefox-linux-aarch64.zip
+# tag 形如 v0.4.0；URL 里 asset 名不含版本号，只有 tag 目录带，所以要
+# 用 tag + asset 名自己拼绝对 URL。
+updater_voicefox() {
+  local out tag asset url
+  out=$(probe_github "emoeem/voicefox" '^voicefox-linux-x86_64\.zip$') || return 1
+  tag=${out%%$'\t'*}
+  asset=${out##*$'\t'}
+  [ -n "$tag" ] && [ -n "$asset" ] || { echo "voicefox: 解析 tag/asset 失败" >&2; return 1; }
+  url="https://github.com/emoeem/voicefox/releases/download/${tag}/${asset}"
+  RESULTS+=("voicefox"$'\t'"${url}"$'\t'"${tag}")
+}
+
+# fluxdown：zerx-lab/FluxDown，开源多协议下载管理器（Rust + GPUI）。
+# 上游同时发 .deb / .AppImage / .tar.gz / .pkg.tar.zst 以及 CLI / Server /
+# mobile / extension 一堆并行 tag 的预编译产物，只取桌面端的 Linux
+# x86_64 .deb（理由见 packages/fluxdown.nix 顶部注释）。
+#   asset 命名 FluxDown-<version>-linux-x64.deb，**平台段写 linux-x64**
+#   （不是 amd64；同一个 release 里还有 FluxDown-CLI-<v>-linux-x64.tar.gz
+#   和 FluxDown-Server-<v>-linux-x64.tar.gz，正则必须锚住 .deb 后缀，
+#   否则会挑中 CLI/server 的压缩包）。
+#   probe_github 走 /releases/latest，GitHub 会跳过 prerelease，所以
+#   rc 预发布（如 v0.5.6-rc.1）不会被误当成最新版——跟「只跟稳定版」
+#   的策略一致。
+#   tag 形如 v0.5.5；packages/fluxdown.nix 的 version 字面量不带 v 前缀
+#   （与 orca / genoffice 一致），所以这里剥掉。
+updater_fluxdown() {
+  local out tag asset url version
+  out=$(probe_github "zerx-lab/FluxDown" '^FluxDown-[0-9][^-]*-linux-x64\.deb$') || return 1
+  IFS=$'\t' read -r tag asset <<<"$out"
+  version="${tag#v}"
+  url="https://github.com/zerx-lab/FluxDown/releases/download/${tag}/${asset}"
+  RESULTS+=("fluxdown"$'\t'"${url}"$'\t'"${version}")
+}
+
+# any-listen：any-listen/any-listen-desktop，上游只发 release 不发源码，
+# 桌面端壳的私有音乐播放服务（Electron，接替 splayer-next）。
+#   asset 命名 any-listen_<version>_amd64.deb。**平台段是 amd64**，
+#   注意同一个 release 里的 AppImage 写作
+#   any-listen_<version>_x86_64.AppImage（x86_64 不是 amd64），
+#   正则锚住 _amd64\.deb$ 才能排除掉 AppImage 与 arm64 的 .deb。
+#   probe_github 走 /releases/latest，GitHub 会跳过 prerelease，
+#   所以 v0.9.0-beta.13 这类预发布不会被误当成最新版。
+#   tag 形如 v0.9.0；packages/any-listen.nix 的 version 字面量不带
+#   v 前缀（与 orca / fluxdown 一致），所以这里剥掉。
+updater_any_listen() {
+  local out tag asset url version
+  out=$(probe_github "any-listen/any-listen-desktop" '^any-listen_.+_amd64\.deb$') || return 1
+  IFS=$'\t' read -r tag asset <<<"$out"
+  version="${tag#v}"
+  url="https://github.com/any-listen/any-listen-desktop/releases/download/${tag}/${asset}"
+  RESULTS+=("any-listen"$'\t'"${url}"$'\t'"${version}")
+}
+
 # darkly-gtk：git ref 跟踪 main，URL 不变（github:wrymt/darkly-gtk）。
 # version 字面量从 flake.lock 的 lastModified 派生：unstable-YYYY-MM-DD。
 updater_darkly_gtk() {
@@ -437,13 +309,14 @@ declare -A UPDATERS=(
   [darkly-gtk]=updater_darkly_gtk
   [goquark]=updater_goquark
   [prismlauncher-offline-account]=updater_prismlauncher_offline_account
-  [mcode]=updater_mcode
-  [pi-agent]=updater_pi_agent
   [orca]=updater_orca
+  [voicefox]=updater_voicefox
+  [fluxdown]=updater_fluxdown
+  [any-listen]=updater_any_listen
 )
 
 if [ "$#" -eq 0 ]; then
-  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account mcode pi-agent orca)
+  TARGETS=(kelivo genoffice zedg wechat bibata-modern-ice dwproton darkly-gtk goquark prismlauncher-offline-account orca fluxdown any-listen)
 else
   TARGETS=("$@")
 fi
@@ -494,7 +367,10 @@ for r in "${RESULTS[@]}"; do
     ' flake.nix
     CHANGED_INPUTS+=("$name")
   fi
-  # 改对应 .nix 文件的 version 字面量
+  # 改对应 .nix 文件的 version 字面量。
+  # 每轮先清空 file：case 命中不了的名字必须留空，否则会沿用上一个
+  # target 的文件路径，把 version 写进不相干的包。
+  file=""
   case "$name" in
     kelivo)            file=packages/kelivo.nix ;;
     genoffice)         file=packages/genoffice.nix ;;
@@ -505,9 +381,10 @@ for r in "${RESULTS[@]}"; do
     darkly-gtk)        file=modules/nixos/desktop/gtk.nix ;;
     goquark)           file=packages/goquark.nix ;;
     prismlauncher-offline-account)    file=packages/prismlauncher-offline-account.nix ;;
-    mcode)             file=packages/mcode.nix ;;
-    pi-agent)           file=packages/pi-agent.nix ;;
     orca)              file=packages/orca.nix ;;
+    voicefox)          file=packages/voicefox.nix ;;
+    fluxdown)          file=packages/fluxdown.nix ;;
+    any-listen)        file=packages/any-listen.nix ;;
   esac
   if [ -n "${file:-}" ]; then
     perl -i -0pe "s|^(\s*)version = \"[^\"]*\";|\$1version = \"${ver}\";|m" "$file"

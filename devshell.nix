@@ -29,16 +29,10 @@ let
 
   # scripts/update-third-party.sh 的外部命令依赖。逐个对应脚本里的实际调用：
   #   bash / curl / git / jq / tar   —— 探测 API、改写文件、git 备份回滚
-  #   prefetch-npm-deps              —— 算 mcode / pi-agent 的 npmDepsHash
-  #   nodejs_22                     —— 跑 npm install --package-lock-only
-  #
-  # 关于 nodejs 版本：这里用 nodejs_22 与 packages/mcode.nix 里的
-  # `nodejs = pkgs.nodejs_22` 对齐（构建时用的就是 22）。但脚本目前
-  # 自己用 `nix-shell -p nodejs_24` 跑 npm，版本与构建侧不一致——
-  # 两者会产出同一份 lockfileVersion 3，但 npm 的解析细节可能随版本漂移。
-  # 想收敛的话应改脚本走本 devshell（见脚本 244 / 337 / 265 / 353 行），
-  # 但那会改变生成的 npmDepsHash，需要连带重跑一次 mcode/pi-agent 构建
-  # 确认，所以本次重构没有动它。
+  #   prefetch-npm-deps              —— 当前脚本已不再用（mcode / pi-agent 已下线，
+  #                                     npm CLI 包改走 numtide/llm-agents.nix 上游打包）；
+  #                                     保留只是为了以后再写 npm updater 时不用改 shellHook
+  #   nodejs_22                      —— 同上，当前无消费者
   scriptDeps = [
     pkgs.bash
     pkgs.curl

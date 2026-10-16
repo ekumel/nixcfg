@@ -18,14 +18,14 @@ in
   #   #DEEPSEEK_API_KEY=…              # 占位，待申请后去掉行首 '#'
   #
   # 为什么统一成 env 格式而不是「一个裸 key 一份密文」：
-  #   裸 key 只能喂给「cat 整个文件当作值」的消费方（原先的 pi / mcode 就是
+  #   裸 key 只能喂给「cat 整个文件当作值」的消费方（旧版 pi / mcode 就是
   #   这么用的：cat → export MINIMAX_CN_API_KEY）。但 DMS 侧的 AiOverviewControl
   #   插件要的是 systemd EnvironmentFile，必须是 KEY=value，且一个文件要能
   #   同时装 MiniMax 与 DeepSeek 两个 provider 的 key。裸 key 格式两者都做不到，
   #   于是同一个 MiniMax key 会被加密两次，轮换要改两个文件、有漏改的风险。
   #   统一成 env 格式后只有这一个真源：谁需要就按变量名取自己那一行。
   #
-  # 仍然刻意不存任何 agent 的私有凭据格式（pi 的 auth.json 等）：那种格式
+  # 仍然刻意不存任何 agent 的私有凭据格式（旧版 pi 的 auth.json 等）：那种格式
   # 会把密文与 agent 版本耦合——pi 自己的 auth.json 就变过（oauth.json +
   # settings.json → auth.json，见其包内 migrations.js）。env 格式是标准格式，
   #   与任何 agent 的版本无关，加新 agent 不用改密文。

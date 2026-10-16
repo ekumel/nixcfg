@@ -3,16 +3,21 @@
 # 主题：DMS（matugen）生成的 $XDG_CACHE_HOME/DankMaterialShell/dms-colors.json。
 # 文件结构见上游源码
 #   core/internal/matugen/matugen.go:124-129   (ColorsOutput struct)
-#   core/cmd/dms/commands_doctor.go:1250-1258  (实际写入路径)
+#   core/internal/matugen/matugen.go:591-600   (实际写入路径：staging → os.Rename)
 # 即：
 #   { "colors": { "dark": { "primary": "#...", ... }, "light": { ... } } }
 # 启动时按 vim.o.background 选 dark/light，把 Material You token 映射到
-# 常用 Neovim 高亮组；DMS 在壁纸/明暗模式变化后重写该文件，FileWritePost
-# autocmd 会即时刷新配色。文件还没生成（DMS 还没跑过）时落回 tokyonight。
+# 常用 Neovim 高亮组。
+#
+# 热重载靠**监听父目录**（不是监听文件本身）——DMS 是用 os.Rename 原子替换的，
+# 挂在文件 inode 上的 inotify 在第一次 rename 之后就废了。详见下面
+# watch_colors_dir 的注释。
+#
+# 文件还没生成（DMS 还没跑过）时落回 tokyonight。
 #
 # 读取 / 映射逻辑拆到 extraFiles 的 Lua 模块里（各文件头有说明）：
 #   lua/dms_colors.lua           调色板读取（归一化 token）
-#   lua/dms_ui.lua               插件自定义高亮（neo-tree / bufferline / …）
+#   lua/dms_ui.lua               插件自定义高亮（neo-tree / bufferline / avante / …）
 #   lua/lualine/themes/dms.lua   lualine 主题 "dms"
 { ... }:
 
@@ -193,7 +198,9 @@
         -- 启动时尝试套一次（DMS 还没写文件时 tokyonight 已在生效）。
         apply_colors()
 
-        -- DMS 在壁纸/明暗模式变化后会原子重写该文件，触发刷新。
+        -- 手动 :write 该 json 时也能刷新。DMS 自己写文件不会触发这个
+        -- （FileWritePost 只对「nvim 写出去」的动作触发），外部写入靠下面的
+        -- 目录监听。
         vim.api.nvim_create_autocmd("FileWritePost", {
           pattern = colors_path,
           callback = function() apply_colors() end,
@@ -205,16 +212,64 @@
           callback = function() apply_colors() end,
         })
 
-        -- 兜底：用 libuv fs event 监听（无需 nvim 自己打开该文件）。
+        -- DMS 在壁纸 / 明暗模式变化后是**原子替换**这个文件的：matugen 先把结果
+        -- 写进 staging 文件，再 os.Rename 覆盖到最终路径
+        -- （core/internal/matugen/matugen.go:591-600）。
+        --
+        -- 因此这里必须监听**父目录**、而不是文件本身。inotify 跟随的是 inode，
+        -- rename 之后原路径已经指向新 inode，挂在旧 inode 上的 watch 再也收不到
+        -- 事件——也就是说过一次配色之后热重载就静默失效了。监听目录对 rename 的
+        -- 两端都稳定，而且将来 DMS 改成直接 truncate 重写也照样能触发。
         local uv = vim.uv or vim.loop
-        if uv and uv.new_fs_event then
-          local handle = uv.new_fs_event()
-          local ok = handle:start(colors_path, {}, function() apply_colors() end)
-          if ok then
-            vim.api.nvim_create_autocmd("VimLeavePre", {
-              callback = function() pcall(function() handle:stop() end) end,
-            })
+        local colors_dir = vim.fs.dirname(colors_path)
+        local colors_name = vim.fs.basename(colors_path)
+
+        -- 一次 matugen 运行会在目录里产生多条事件（staging 写入 + rename 进来），
+        -- 去抖一下，只应用最终状态。vim.defer_fn 跑在主循环里，
+        -- 可以安全调用 vim.api（fs_event 回调是 fast event，不行）。
+        local reload_pending = false
+        local function schedule_reload()
+          if reload_pending then
+            return
           end
+          reload_pending = true
+          vim.defer_fn(function()
+            reload_pending = false
+            apply_colors()
+          end, 150)
+        end
+
+        local function watch_colors_dir(attempt)
+          local handle = uv.new_fs_event()
+          local started = pcall(function()
+            handle:start(colors_dir, {}, function(err, filename)
+              if err or not filename or filename ~= colors_name then
+                return
+              end
+              schedule_reload()
+            end)
+          end)
+          if started then
+            vim.api.nvim_create_autocmd("VimLeavePre", {
+              callback = function()
+                pcall(function() handle:stop() end)
+                pcall(function() handle:close() end)
+              end,
+            })
+            return
+          end
+
+          -- DMS 还没跑过、缓存目录尚未创建时 start 会失败（DMS 首次运行后会补上）。
+          -- 有限次重试即可，再多就没意义了——那种情况下启动时的 apply_colors
+          -- 也一样没读到文件，兜底是 tokyonight。
+          pcall(function() handle:close() end)
+          if attempt < 3 then
+            vim.defer_fn(function() watch_colors_dir(attempt + 1) end, 10000)
+          end
+        end
+
+        if uv and uv.new_fs_event then
+          watch_colors_dir(1)
         end
       end
     '';
